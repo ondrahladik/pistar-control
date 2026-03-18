@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .login-layout {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(100vh - 180px);
+        padding: 42px 0 12px;
+    }
+
+    .login-card {
+        width: min(440px, 100%);
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        text-align: center;
+    }
+
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        text-align: left;
+    }
+
+    .field label {
+        color: var(--muted);
+        font-size: 0.92rem;
+    }
+
+    .field input {
+        width: 100%;
+        padding: 16px 18px;
+        border: 0;
+        border-radius: 18px;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.05);
+        font: inherit;
+    }
+
+    .field input:focus {
+        outline: 1px solid rgba(89, 197, 255, 0.5);
+    }
+
+    .login-card .button {
+        width: 100%;
+    }
+</style>
+
+<section class="login-layout">
+    <article class="panel login-card">
+        <h1>Přihlášení</h1>
+
+        <div class="field">
+            <label for="token">API token</label>
+            <input id="token" name="token" type="password" placeholder="Zadejte token">
+        </div>
+
+        <button id="loginButton" class="button primary" type="button">Přihlásit se</button>
+        <div id="status" class="status">Zadejte token pro pokračování.</div>
+    </article>
+</section>
+
+<script>
+    const tokenInput = document.getElementById("token");
+    const loginButton = document.getElementById("loginButton");
+    const statusNode = document.getElementById("status");
+
+    function setStatus(message, kind = "") {
+        statusNode.textContent = message;
+        statusNode.className = kind ? `status ${kind}` : "status";
+    }
+
+    async function login() {
+        const token = tokenInput.value.trim();
+
+        if (!token) {
+            setStatus("Nejdřív zadejte API token.", "error");
+            return;
+        }
+
+        loginButton.disabled = true;
+        setStatus("Ověřuji přihlášení...");
+
+        try {
+            const response = await fetch("/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ token })
+            });
+
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error("Neplatný token.");
+                }
+                throw new Error(payload.error || "Přihlášení se nepodařilo.");
+            }
+
+            setStatus("Přihlášení bylo úspěšné.", "success");
+            window.location.href = "/";
+        } catch (error) {
+            setStatus(error.message, "error");
+        } finally {
+            loginButton.disabled = false;
+        }
+    }
+
+    loginButton.addEventListener("click", login);
+    tokenInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            login();
+        }
+    });
+</script>
+{% endblock %}

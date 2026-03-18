@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .hero {
+        margin-bottom: 22px;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+
+    .endpoint-list {
+        display: grid;
+        gap: 18px;
+        margin-top: 18px;
+    }
+
+    .method {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.82rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        background: rgba(89, 197, 255, 0.14);
+        color: var(--accent);
+    }
+
+    .path {
+        display: block;
+        margin-top: 10px;
+        font-size: 1.05rem;
+        color: var(--text);
+    }
+
+    ul {
+        margin: 12px 0 0;
+        padding-left: 18px;
+        color: var(--muted);
+    }
+
+    li + li {
+        margin-top: 8px;
+    }
+
+    @media (max-width: 900px) {
+        .grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<section class="grid">
+    <article class="panel">
+        <h2>Autentizace</h2>
+        <p>Chráněné endpointy kontrolují HTTP hlavičku <code>Authorization</code> ve tvaru Bearer tokenu.</p>
+        <pre>Authorization: Bearer muj_token</pre>
+        <ul>
+            <li><code>/api/network</code> vyžaduje autorizaci</li>
+            <li><code>/api/networks</code> vyžaduje autorizaci</li>
+            <li><code>/api/status</code> vyžaduje autorizaci</li>
+            <li><code>/api/config</code> vyžaduje autorizaci</li>
+        </ul>
+    </article>
+
+    <article class="panel">
+        <h2>Základní odpovědi</h2>
+        <ul>
+            <li>200: požadavek proběhl úspěšně</li>
+            <li>400: chybí nebo je špatný payload</li>
+            <li>401: neplatný nebo chybějící token</li>
+            <li>404: neexistující síť nebo endpoint</li>
+            <li>500: server nedokázal provést změnu</li>
+        </ul>
+    </article>
+</section>
+
+<section class="endpoint-list">
+    <article class="panel">
+        <span class="method">GET</span>
+        <span class="path">/api/networks</span>
+        <p>Vrátí seznam dostupných sítí podle konfigurace na serveru včetně aliasů pro zobrazení ve webu.</p>
+        <pre>{
+  "networks": [
+    {
+      "id": "host1",
+      "label": "Síť 1"
+    },
+    {
+      "id": "host2",
+      "label": "Síť 2"
+    }
+  ]
+}</pre>
+    </article>
+
+    <article class="panel">
+        <span class="method">GET</span>
+        <span class="path">/api/status</span>
+        <p>Vrátí aktuálně přepnuté aktivní připojení včetně aliasu pro UI.</p>
+        <pre>{
+  "current_network": "host1",
+  "current_network_label": "Síť 1"
+}</pre>
+    </article>
+
+    <article class="panel">
+        <span class="method">POST</span>
+        <span class="path">/api/network</span>
+        <p>Přepne aktivní síť podle jména v JSON payloadu.</p>
+        <pre>{
+  "network": "host1"
+}</pre>
+        <pre>{
+  "success": true,
+  "current_network": "host1"
+}</pre>
+    </article>
+
+    <article class="panel">
+        <span class="method">GET</span>
+        <span class="path">/api/config</span>
+        <p>Načte aktuální obsah <code>config/app.ini</code> po sekcích a klíčích.</p>
+        <pre>{
+  "config": {
+    "api": {
+      "port": "5000",
+      "token": "muj_token"
+    }
+  }
+}</pre>
+    </article>
+
+    <article class="panel">
+        <span class="method">POST</span>
+        <span class="path">/api/config</span>
+        <p>Uloží nový obsah konfigurace a vrátí finální podobu souboru.</p>
+        <pre>{
+  "config": {
+    "api": {
+      "port": "5000",
+      "token": "muj_token"
+    }
+  }
+}</pre>
+        <pre>{
+  "success": true,
+  "config": {
+    "api": {
+      "port": "5000",
+      "token": "muj_token"
+    }
+  }
+}</pre>
+    </article>
+</section>
+{% endblock %}

@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .dashboard-shell {
+        display: grid;
+        gap: 22px;
+    }
+
+    .dashboard-header {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+    }
+
+    .dashboard-card {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .dashboard-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at top right, rgba(89, 197, 255, 0.12), transparent 36%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+        pointer-events: none;
+    }
+
+    .dashboard-card > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .dashboard-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(89, 197, 255, 0.14);
+        color: var(--accent);
+        font-size: 0.82rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .dashboard-title {
+        margin: 18px 0 8px;
+        font-size: clamp(1.8rem, 4vw, 3rem);
+        line-height: 1;
+    }
+
+    .dashboard-text {
+        max-width: 560px;
+    }
+
+    .status-box {
+        display: grid;
+        gap: 8px;
+        height: 100%;
+        padding: 22px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .status-box strong {
+        font-size: 0.95rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .status-box span {
+        font-size: clamp(1.5rem, 3vw, 2.2rem);
+        color: var(--text);
+        line-height: 1.1;
+    }
+
+    .status-box small {
+        color: var(--muted);
+        font-size: 0.95rem;
+    }
+
+    .control-panel {
+        display: grid;
+        gap: 18px;
+    }
+
+    .network-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+    }
+
+    .network-buttons button {
+        width: 100%;
+        padding: 16px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: left;
+        transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+    }
+
+    .network-buttons button:hover {
+        transform: translateY(-1px);
+    }
+
+    .network-buttons button.is-active {
+        border-color: rgba(89, 197, 255, 0.34);
+        background: linear-gradient(135deg, rgba(89, 197, 255, 0.18) 0%, rgba(49, 143, 255, 0.18) 100%);
+        color: var(--accent);
+    }
+
+    .network-buttons button small {
+        display: block;
+        margin-top: 6px;
+        color: inherit;
+        opacity: 0.72;
+        font-size: 0.82rem;
+        font-weight: 500;
+    }
+
+    .network-buttons button:disabled {
+        cursor: not-allowed;
+        opacity: 0.72;
+        transform: none;
+    }
+
+    @media (max-width: 900px) {
+        .dashboard-header {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<section class="dashboard-shell">
+    <div class="dashboard-header">
+        <article class="panel dashboard-card">
+            <span class="dashboard-label">Dashboard</span>
+            <h1 class="dashboard-title">Přepínání konfigurací</h1>
+            <p class="dashboard-text">Vyberte aktivní síť jedním kliknutím. Aktuální konfigurace je zvýrazněná přímo v seznamu.</p>
+        </article>
+
+        <article class="panel dashboard-card">
+            <div class="status-box">
+                <strong>Aktivní konfigurace</strong>
+                <span id="currentNetwork">Neznámá</span>
+                <small id="statusMessage">Načítám dostupné konfigurace...</small>
+            </div>
+        </article>
+    </div>
+
+    <section class="panel control-panel">
+        <div class="network-buttons" id="networkButtons">
+            <button type="button" disabled>Načítám...</button>
+        </div>
+    </section>
+</section>
+
+<script>
+    const networkButtons = document.getElementById("networkButtons");
+    const currentNetwork = document.getElementById("currentNetwork");
+    const statusMessage = document.getElementById("statusMessage");
+
+    function setStatus(message, kind = "") {
+        statusMessage.textContent = message;
+        statusMessage.className = kind ? `status ${kind}` : "status";
+    }
+
+    async function apiRequest(url, options = {}) {
+        const response = await fetch(url, options);
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(payload.error || "Požadavek se nepodařilo dokončit.");
+        }
+
+        return payload;
+    }
+
+    function renderNetworkButtons(networks, activeNetwork) {
+        networkButtons.innerHTML = "";
+
+        if (networks.length === 0) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.disabled = true;
+            button.textContent = "Žádná konfigurace není dostupná";
+            networkButtons.appendChild(button);
+            return;
+        }
+
+        networks.forEach((network) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.innerHTML = `${network.label}<small>${network.id}</small>`;
+            if (network.id === activeNetwork) {
+                button.classList.add("is-active");
+            }
+            button.addEventListener("click", () => switchNetwork(network));
+            networkButtons.appendChild(button);
+        });
+    }
+
+    async function loadHomeData() {
+        setStatus("Načítám stav a dostupné konfigurace...");
+
+        try {
+            const [statusPayload, networksPayload] = await Promise.all([
+                apiRequest("/api/status"),
+                apiRequest("/api/networks")
+            ]);
+
+            const activeNetwork = statusPayload.current_network_label || statusPayload.current_network || "Neznámá";
+            currentNetwork.textContent = activeNetwork;
+            renderNetworkButtons(networksPayload.networks || [], statusPayload.current_network);
+            setStatus("Připraveno.", "success");
+        } catch (error) {
+            if (error.message === "Unauthorized") {
+                window.location.href = "/login";
+                return;
+            }
+            setStatus(error.message, "error");
+        }
+    }
+
+    async function switchNetwork(network) {
+        setStatus(`Přepínám konfiguraci na ${network.label}...`);
+
+        try {
+            await apiRequest("/api/network", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ network: network.id })
+            });
+
+            currentNetwork.textContent = network.label;
+            await loadHomeData();
+            setStatus(`Aktivní je ${network.label}.`, "success");
+        } catch (error) {
+            if (error.message === "Unauthorized") {
+                window.location.href = "/login";
+                return;
+            }
+            setStatus(error.message, "error");
+        }
+    }
+
+    loadHomeData();
+</script>
+{% endblock %}

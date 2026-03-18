@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .hero-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    .stat {
+        min-width: 150px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .stat strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 1.15rem;
+    }
+
+    .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .config-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 18px;
+        margin-top: 26px;
+    }
+
+    .section-card h2 {
+        margin: 0 0 14px;
+        font-size: 1.15rem;
+    }
+
+    .fields {
+        display: grid;
+        gap: 14px;
+    }
+
+    .config-field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .config-field label {
+        font-size: 0.92rem;
+        color: var(--muted);
+    }
+
+    .config-field input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 0;
+        border-radius: 16px;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.05);
+        font: inherit;
+    }
+
+    .hosts-panel {
+        margin-top: 28px;
+    }
+
+    .hosts-list {
+        display: grid;
+        gap: 14px;
+        margin-top: 18px;
+    }
+
+    .host-item {
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.03);
+        overflow: hidden;
+    }
+
+    .host-item summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 18px 20px;
+        font-weight: 600;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .host-item summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .host-item summary span {
+        color: var(--muted);
+        font-weight: 500;
+        font-size: 0.92rem;
+    }
+
+    .host-body {
+        display: grid;
+        gap: 14px;
+        padding: 0 20px 20px;
+    }
+
+    .host-body textarea {
+        width: 100%;
+        min-height: 320px;
+        padding: 16px 18px;
+        border: 0;
+        border-radius: 18px;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.05);
+        font: 13px/1.5 Consolas, "Courier New", monospace;
+        resize: vertical;
+    }
+
+    .host-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+        .button-row {
+            flex-direction: column;
+        }
+
+        .host-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<section class="panel">
+    <span class="eyebrow">Config</span>
+    <h1>Konfigurace serveru</h1>
+    <div class="hero-stats">
+        <div class="stat">
+            <strong id="sectionCount">0</strong>
+            <span>Sekcí v konfiguraci</span>
+        </div>
+        <div class="stat">
+            <strong id="fieldCount">0</strong>
+            <span>Načtených hodnot</span>
+        </div>
+    </div>
+    <div id="status" class="status" style="margin-top: 18px;">Načítám konfiguraci...</div>
+</section>
+
+<section id="configGrid" class="config-grid"></section>
+
+<section class="panel hosts-panel">
+    <h2>Správa host konfigurací</h2>
+    <div id="hostsList" class="hosts-list">
+        <div class="status">Načítám hosty...</div>
+    </div>
+</section>
+
+<section class="panel" style="margin-top: 28px;">
+    <div class="button-row">
+        <button id="bottomSaveButton" class="button primary" type="button" disabled>Uložit konfiguraci</button>
+    </div>
+</section>
+
+<script>
+    const bottomSaveButton = document.getElementById("bottomSaveButton");
+    const statusNode = document.getElementById("status");
+    const configGrid = document.getElementById("configGrid");
+    const hostsList = document.getElementById("hostsList");
+    const sectionCount = document.getElementById("sectionCount");
+    const fieldCount = document.getElementById("fieldCount");
+
+    let currentConfig = {};
+
+    function setStatus(message, kind = "") {
+        statusNode.textContent = message;
+        statusNode.className = kind ? `status ${kind}` : "status";
+    }
+
+    function setLoading(isLoading) {
+        bottomSaveButton.disabled = isLoading || Object.keys(currentConfig).length === 0;
+    }
+
+    function renderConfig(config) {
+        currentConfig = config;
+        configGrid.innerHTML = "";
+
+        const sections = Object.entries(config);
+        let totalFields = 0;
+
+        sections.forEach(([sectionName, values]) => {
+            const card = document.createElement("article");
+            card.className = "panel section-card";
+
+            const title = document.createElement("h2");
+            title.textContent = sectionName;
+
+            const fields = document.createElement("div");
+            fields.className = "fields";
+
+            Object.entries(values).forEach(([key, value]) => {
+                totalFields += 1;
+
+                const wrapper = document.createElement("div");
+                wrapper.className = "config-field";
+
+                const label = document.createElement("label");
+                label.htmlFor = `${sectionName}.${key}`;
+                label.textContent = key;
+
+                const input = document.createElement("input");
+                input.id = `${sectionName}.${key}`;
+                input.name = `${sectionName}.${key}`;
+                input.value = value;
+                input.dataset.section = sectionName;
+                input.dataset.key = key;
+
+                wrapper.append(label, input);
+                fields.appendChild(wrapper);
+            });
+
+            card.append(title, fields);
+            configGrid.appendChild(card);
+        });
+
+        sectionCount.textContent = String(sections.length);
+        fieldCount.textContent = String(totalFields);
+
+        const hasConfig = sections.length > 0;
+        bottomSaveButton.disabled = !hasConfig;
+    }
+
+    function collectConfig() {
+        const nextConfig = {};
+
+        document.querySelectorAll(".config-field input").forEach((input) => {
+            const section = input.dataset.section;
+            const key = input.dataset.key;
+
+            if (!nextConfig[section]) {
+                nextConfig[section] = {};
+            }
+
+            nextConfig[section][key] = input.value;
+        });
+
+        return nextConfig;
+    }
+
+    async function loadHost(name) {
+        const response = await fetch(`/api/hosts/${name}`);
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.error || "Nepodařilo se načíst host.");
+        }
+
+        const payload = await response.json();
+        return payload.host;
+    }
+
+    async function saveHost(name, content) {
+        const response = await fetch(`/api/hosts/${name}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ content })
+        });
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.error || "Nepodařilo se uložit host.");
+        }
+
+        const payload = await response.json();
+        return payload.host;
+    }
+
+    function renderHosts(hosts) {
+        hostsList.innerHTML = "";
+
+        hosts.forEach((host) => {
+            const item = document.createElement("details");
+            item.className = "host-item";
+
+            const summary = document.createElement("summary");
+            summary.innerHTML = `${host.label} <span>${host.id}</span>`;
+
+            const body = document.createElement("div");
+            body.className = "host-body";
+
+            const textarea = document.createElement("textarea");
+            textarea.value = host.content;
+            textarea.dataset.host = host.id;
+
+            const hostStatus = document.createElement("div");
+            hostStatus.className = "status";
+            hostStatus.textContent = "Připraveno k úpravě.";
+
+            const actions = document.createElement("div");
+            actions.className = "host-actions";
+
+            const saveButton = document.createElement("button");
+            saveButton.type = "button";
+            saveButton.className = "button secondary";
+            saveButton.textContent = "Uložit host";
+            saveButton.addEventListener("click", async () => {
+                saveButton.disabled = true;
+                hostStatus.textContent = "Ukládám host konfiguraci...";
+                hostStatus.className = "status";
+
+                try {
+                    const savedHost = await saveHost(host.id, textarea.value);
+                    textarea.value = savedHost.content;
+                    hostStatus.textContent = "Host konfigurace byla uložena.";
+                    hostStatus.className = "status success";
+                } catch (error) {
+                    if (error.message === "Unauthorized") {
+                        window.location.href = "/login";
+                        return;
+                    }
+                    hostStatus.textContent = error.message;
+                    hostStatus.className = "status error";
+                } finally {
+                    saveButton.disabled = false;
+                }
+            });
+
+            actions.appendChild(saveButton);
+            body.append(textarea, hostStatus, actions);
+            item.append(summary, body);
+            hostsList.appendChild(item);
+        });
+    }
+
+    async function loadHosts() {
+        hostsList.innerHTML = '<div class="status">Načítám hosty...</div>';
+
+        try {
+            const hostIds = ["host1", "host2"];
+            const hosts = await Promise.all(hostIds.map((hostId) => loadHost(hostId)));
+            renderHosts(hosts);
+        } catch (error) {
+            if (error.message === "Unauthorized") {
+                window.location.href = "/login";
+                return;
+            }
+            hostsList.innerHTML = `<div class="status error">${error.message}</div>`;
+        }
+    }
+
+    async function loadConfig() {
+        setLoading(true);
+        setStatus("Načítám konfiguraci...");
+
+        try {
+            const response = await fetch("/api/config");
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(payload.error || "Nepodařilo se načíst konfiguraci.");
+            }
+
+            const payload = await response.json();
+            renderConfig(payload.config || {});
+            setStatus("Konfigurace byla úspěšně načtena.", "success");
+        } catch (error) {
+            if (error.message === "Unauthorized") {
+                window.location.href = "/login";
+                return;
+            }
+            setStatus(error.message, "error");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function saveConfig() {
+        const config = collectConfig();
+        setLoading(true);
+        setStatus("Ukládám změny do app.ini...");
+
+        try {
+            const response = await fetch("/api/config", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ config })
+            });
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(payload.error || "Nepodařilo se uložit konfiguraci.");
+            }
+
+            const payload = await response.json();
+            renderConfig(payload.config || {});
+            loadHosts();
+            setStatus("Konfigurace byla uložena.", "success");
+        } catch (error) {
+            if (error.message === "Unauthorized") {
+                window.location.href = "/login";
+                return;
+            }
+            setStatus(error.message, "error");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    bottomSaveButton.addEventListener("click", saveConfig);
+
+    loadConfig();
+    loadHosts();
+</script>
+{% endblock %}
