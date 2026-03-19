@@ -2,7 +2,7 @@
 
 [Zpět na přehled](./readme.md)
 
-MQTT integrace publikuje aktuální stav aplikace do jednoho zvoleného topicu.
+MQTT integrace publikuje aktuální stav aplikace a současně umí přijímat příkazy pro přepnutí sítě.
 Je vhodná pro Home Assistant, Node-RED nebo vlastní monitoring.
 
 ## Konfigurace
@@ -14,9 +14,11 @@ Nastavení je v sekci `mqtt` v `config/app.ini`:
 - `port`: TCP port brokeru, výchozí `1883`
 - `username`: volitelné uživatelské jméno
 - `password`: volitelné heslo
-- `topic`: cílový topic pro stavové zprávy
+- `topic_pub`: cílový topic pro stavové zprávy
+- `topic_sub`: topic, na kterém aplikace naslouchá příkazům
 
-Publikace je aktivní jen pokud je `enabled=true` a zároveň je vyplněný `server` a `topic`.
+Publikace je aktivní jen pokud je `enabled=true` a zároveň je vyplněný `server` a `topic_pub`.
+Příjem příkazů je aktivní jen pokud je `enabled=true` a zároveň je vyplněný `server` a `topic_sub`.
 
 ## JSON payload
 
@@ -41,8 +43,23 @@ Pokud právě není aktivní hovor, `callsign` a `talkgroup` mají hodnotu `null
 - po ukončení hovoru
 - po restartu služby, pokud je stav známý a MQTT je nastavené
 
+## MQTT příkazy
+
+Na `topic_sub` můžeš posílat čistý textový příkaz bez `/`.
+
+Příklady:
+
+- `bm`
+- `ods`
+- `host1`
+- `host2`
+
+Alias se vyhodnocuje stejně jako u Telegramu, tedy podle sekce `aliases`.
+Pokud máš například `host1 = BM`, stačí do MQTT poslat payload `bm`.
+
 ## Poznámky
 
 - publikace používá jednoduchý MQTT publish bez TLS
-- připojení se navazuje pro každé odeslání zvlášť
+- publish připojení se navazuje pro každé odeslání zvlášť
+- subscribe běží trvale na pozadí nad jedním otevřeným MQTT spojením
 - přihlašovací údaje jsou volitelné

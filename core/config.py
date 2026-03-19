@@ -38,7 +38,8 @@ class ConfigStore:
             "port": "1883",
             "username": "",
             "password": "",
-            "topic": "",
+            "topic_pub": "",
+            "topic_sub": "",
         }
         self._lock = threading.RLock()
         self._app_config = configparser.ConfigParser()
@@ -148,6 +149,11 @@ class ConfigStore:
 
         if not self._app_config.has_section("mqtt"):
             self._app_config.add_section("mqtt")
+            changed = True
+
+        legacy_topic = self._app_config.get("mqtt", "topic", fallback="")
+        if legacy_topic and not self._app_config.has_option("mqtt", "topic_pub"):
+            self._app_config.set("mqtt", "topic_pub", legacy_topic)
             changed = True
 
         for key, value in self._default_mqtt_config.items():

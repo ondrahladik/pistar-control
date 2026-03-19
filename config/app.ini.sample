@@ -18,4 +18,5 @@ server=
 port=1883
 username=
 password=
-topic=
+topic_pub=
+topic_sub=

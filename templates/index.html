@@ -198,7 +198,8 @@
     const PAIRED_FIELDS = [
         ["telegram.chat_id", "telegram.thread_id"],
         ["mqtt.username", "mqtt.password"],
-        ["mqtt.server", "mqtt.port"]
+        ["mqtt.server", "mqtt.port"],
+        ["mqtt.topic_pub", "mqtt.topic_sub"]
     ];
 
     const SECTION_TOGGLE_FIELDS = {
@@ -248,7 +249,8 @@
             "mqtt.username": "Jméno",
             "mqtt.password": "Heslo",
             "mqtt.enabled": "MQTT zapnuté",
-            "mqtt.topic": "Topic"
+            "mqtt.topic_pub": "Topic (Pub)",
+            "mqtt.topic_sub": "Topic (Sub)"
         };
         return names[`${sectionName}.${key}`] || key;
     }

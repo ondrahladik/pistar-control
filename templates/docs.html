@@ -140,7 +140,7 @@
     <section class="grid">
         <article class="panel">
             <h2>JSON payload</h2>
-            <p>Pokud je MQTT zapnuté a je vyplněný broker i topic, aplikace publikuje aktuální stav jako JSON.</p>
+            <p>Pokud je MQTT zapnuté a je vyplněný broker i publish topic, aplikace publikuje aktuální stav jako JSON.</p>
             <pre>{
   "network": "BM",
   "callsign": "OK1ABC",
@@ -156,10 +156,12 @@
         </article>
 
         <article class="panel">
-            <h2>Nastavení</h2>
+            <h2>Nastavení a příkazy</h2>
             <ul>
-                <li>přepínač <code>mqtt.enabled</code> zapíná nebo vypíná publikaci</li>
+                <li>přepínač <code>mqtt.enabled</code> zapíná publikaci i příjem příkazů</li>
                 <li>broker používá <code>server</code>, <code>port</code> a volitelně <code>username</code>, <code>password</code></li>
+                <li><code>topic_pub</code> slouží pro stavové JSON zprávy a <code>topic_sub</code> pro příkazy</li>
+                <li>na subscribe topic můžeš poslat alias jako <code>bm</code> nebo interní název <code>host1</code>, bez lomítka</li>
                 <li>odesílá se po přepnutí sítě, změně aktivity a po ukončení hovoru</li>
             </ul>
         </article>

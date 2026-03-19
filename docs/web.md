@@ -33,7 +33,7 @@ Uživatel může:
 
 - upravit port, token a Telegram nastavení
 - zapnout nebo vypnout MQTT publikaci samostatným přepínačem
-- nastavit MQTT broker, port, přihlašovací údaje a topic
+- nastavit MQTT broker, port, přihlašovací údaje, publish topic i subscribe topic
 - měnit aliasy profilů
 - otevřít každý host soubor zvlášť a uložit ho samostatně
 
