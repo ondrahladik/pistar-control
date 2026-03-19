@@ -9,8 +9,6 @@
 
     .dashboard-header {
         display: grid;
-        grid-template-columns: 1.1fr 0.9fr;
-        gap: 18px;
     }
 
     .dashboard-card {
@@ -52,8 +50,36 @@
         line-height: 1;
     }
 
-    .dashboard-text {
-        max-width: 560px;
+    .live-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+    }
+
+    .live-row {
+        display: grid;
+        gap: 6px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        text-align: center;
+        align-items: center;
+        justify-items: center;
+    }
+
+    .live-row strong {
+        font-size: 0.82rem;
+        color: var(--muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .live-row span {
+        font-size: clamp(1.1rem, 2vw, 1.5rem);
+        color: var(--text);
+        line-height: 1.15;
     }
 
     .status-box {
@@ -89,10 +115,60 @@
         gap: 18px;
     }
 
+    .panel-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .section-title {
+        font-size: 0.95rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
     .network-buttons {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 12px;
+    }
+
+    .config-summary {
+        display: grid;
+        gap: 18px;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .summary-row {
+        display: grid;
+        gap: 6px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        text-align: center;
+        align-items: center;
+        justify-items: center;
+    }
+
+    .summary-row strong {
+        font-size: 0.82rem;
+        color: var(--muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .summary-row span {
+        font-size: clamp(1.1rem, 2vw, 1.5rem);
+        color: var(--text);
+        line-height: 1.15;
     }
 
     .network-buttons button {
@@ -135,7 +211,11 @@
     }
 
     @media (max-width: 900px) {
-        .dashboard-header {
+        .live-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .summary-grid {
             grid-template-columns: 1fr;
         }
     }
@@ -144,31 +224,57 @@
 <section class="dashboard-shell">
     <div class="dashboard-header">
         <article class="panel dashboard-card">
-            <span class="dashboard-label">Dashboard</span>
-            <h1 class="dashboard-title">Přepínání konfigurací</h1>
-            <p class="dashboard-text">Vyberte aktivní síť jedním kliknutím. Aktuální konfigurace je zvýrazněná přímo v seznamu.</p>
-        </article>
-
-        <article class="panel dashboard-card">
-            <div class="status-box">
-                <strong>Aktivní konfigurace</strong>
-                <span id="currentNetwork">Neznámá</span>
-                <small id="statusMessage">Načítám dostupné konfigurace...</small>
+            <strong class="section-title">Dashboard</strong>
+            <div class="live-grid">
+                <div class="live-row">
+                    <strong>Volačka</strong>
+                    <span id="activeCallsign">---</span>
+                </div>
+                <div class="live-row">
+                    <strong>Talkgroup</strong>
+                    <span id="activeTalkgroup">---</span>
+                </div>
             </div>
         </article>
     </div>
 
     <section class="panel control-panel">
+        <div class="panel-heading">
+            <strong class="section-title">Přepínání konfigurací</strong>
+            <small id="statusMessage">Načítám dostupné konfigurace...</small>
+        </div>
         <div class="network-buttons" id="networkButtons">
             <button type="button" disabled>Načítám...</button>
+        </div>
+    </section>
+
+    <section class="panel config-summary">
+        <div class="panel-heading">
+            <strong class="section-title">Moje nastavení</strong>
+            <small id="currentConfigName">---</small>
+        </div>
+        <div class="summary-grid">
+            <div class="summary-row">
+                <strong>Volačka</strong>
+                <span id="configCallsign">---</span>
+            </div>
+            <div class="summary-row">
+                <strong>DMR ID</strong>
+                <span id="configId">---</span>
+            </div>
         </div>
     </section>
 </section>
 
 <script>
     const networkButtons = document.getElementById("networkButtons");
-    const currentNetwork = document.getElementById("currentNetwork");
     const statusMessage = document.getElementById("statusMessage");
+    const activeCallsign = document.getElementById("activeCallsign");
+    const activeTalkgroup = document.getElementById("activeTalkgroup");
+    const currentConfigName = document.getElementById("currentConfigName");
+    const configCallsign = document.getElementById("configCallsign");
+    const configId = document.getElementById("configId");
+    let refreshTimer = null;
 
     function setStatus(message, kind = "") {
         statusMessage.textContent = message;
@@ -210,6 +316,26 @@
         });
     }
 
+    function renderRealtimeStatus(statusPayload) {
+        const activeCall = statusPayload.active_call;
+
+        if (activeCall && typeof activeCall === "object") {
+            activeCallsign.textContent = activeCall.callsign || "?";
+            activeTalkgroup.textContent = activeCall.talkgroup || "?";
+            return;
+        }
+
+        activeCallsign.textContent = "---";
+        activeTalkgroup.textContent = "---";
+    }
+
+    function renderCurrentConfigSettings(statusPayload) {
+        const settings = statusPayload.current_network_settings || {};
+        currentConfigName.textContent = statusPayload.current_network || "---";
+        configCallsign.textContent = settings.callsign || "---";
+        configId.textContent = settings.id || "---";
+    }
+
     async function loadHomeData() {
         setStatus("Načítám stav a dostupné konfigurace...");
 
@@ -219,16 +345,28 @@
                 apiRequest("/api/networks")
             ]);
 
-            const activeNetwork = statusPayload.current_network_label || statusPayload.current_network || "Neznámá";
-            currentNetwork.textContent = activeNetwork;
+            renderRealtimeStatus(statusPayload);
+            renderCurrentConfigSettings(statusPayload);
             renderNetworkButtons(networksPayload.networks || [], statusPayload.current_network);
-            setStatus("Připraveno.", "success");
+            setStatus("Připraveno", "success");
         } catch (error) {
             if (error.message === "Unauthorized") {
                 window.location.href = "/login";
                 return;
             }
             setStatus(error.message, "error");
+        }
+    }
+
+    async function refreshStatusOnly() {
+        try {
+            const statusPayload = await apiRequest("/api/status");
+            renderRealtimeStatus(statusPayload);
+            renderCurrentConfigSettings(statusPayload);
+        } catch (error) {
+            if (error.message === "Unauthorized") {
+                window.location.href = "/login";
+            }
         }
     }
 
@@ -244,9 +382,8 @@
                 body: JSON.stringify({ network: network.id })
             });
 
-            currentNetwork.textContent = network.label;
             await loadHomeData();
-            setStatus(`Aktivní je ${network.label}.`, "success");
+            setStatus(`Aktivní je ${network.label}`, "success");
         } catch (error) {
             if (error.message === "Unauthorized") {
                 window.location.href = "/login";
@@ -257,5 +394,6 @@
     }
 
     loadHomeData();
+    refreshTimer = window.setInterval(refreshStatusOnly, 2000);
 </script>
 {% endblock %}

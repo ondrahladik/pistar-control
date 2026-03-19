@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} | Pi-Star Control</title>
+    <title>{{ title }}</title>
+    {% block extra_head %}{% endblock %}
     <style>
         :root {
             color-scheme: dark;
@@ -216,8 +217,8 @@
             </div>
             <div class="nav-links">
                 <a href="/" class="{% if active_page == 'home' %}is-active{% endif %}">Domů</a>
-                <a href="/config" class="{% if active_page == 'config' %}is-active{% endif %}">Config</a>
-                <a href="/docs" class="{% if active_page == 'docs' %}is-active{% endif %}">Docs</a>
+                <a href="/config" class="{% if active_page == 'config' %}is-active{% endif %}">Konfigurace</a>
+                <a href="/docs" class="{% if active_page == 'docs' %}is-active{% endif %}">Dokumentace</a>
                 <form method="post" action="/auth/logout">
                     <button type="submit">Odhlásit se</button>
                 </form>
@@ -226,5 +227,6 @@
         {% endif %}
         {% block content %}{% endblock %}
     </main>
+    {% block extra_scripts %}{% endblock %}
 </body>
 </html>

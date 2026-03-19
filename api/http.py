@@ -1,15 +1,15 @@
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 
 from core.config import ConfigStore, get_api_token
-from core.state import state
+from core.state import get_state_snapshot
 from core.switcher import switch_network
 
 
-def create_app(config_store: ConfigStore) -> Flask:
+def create_app(config_store: ConfigStore, telegram_service: Optional[Any] = None) -> Flask:
     template_dir = Path(__file__).resolve().parents[1] / "templates"
     app = Flask(__name__, template_folder=str(template_dir))
     app.secret_key = "pistar-control-ui-session"
@@ -94,15 +94,15 @@ def create_app(config_store: ConfigStore) -> Flask:
 
     @app.route("/")
     def index() -> Any:
-        return render_template("home.html", title="Domů", active_page="home")
+        return render_template("home.html", title="Pi-Star Control", active_page="home")
 
     @app.route("/config")
     def config_page() -> Any:
-        return render_template("index.html", title="Config", active_page="config")
+        return render_template("index.html", title="Konfigurace", active_page="config")
 
     @app.route("/docs")
     def docs_page() -> Any:
-        return render_template("docs.html", title="Docs", active_page="docs")
+        return render_template("docs.html", title="Dokumentace", active_page="docs")
 
     @app.post("/api/network")
     @require_auth
@@ -119,9 +119,12 @@ def create_app(config_store: ConfigStore) -> Flask:
         if not switch_network(network_name, config_store):
             return jsonify({"error": "Failed to switch network"}), 500
 
+        if telegram_service is not None:
+            telegram_service.request_dashboard_refresh()
+
         return jsonify({
             "success": True,
-            "current_network": state["current_network"],
+            "current_network": get_state_snapshot()["current_network"],
         })
 
     @app.get("/api/hosts/<string:name>")
@@ -177,7 +180,13 @@ def create_app(config_store: ConfigStore) -> Flask:
     @app.get("/api/status")
     @require_auth
     def get_status() -> Any:
-        current_network = state["current_network"]
+        snapshot = get_state_snapshot()
+        current_network = snapshot["current_network"]
+        current_network_settings = (
+            config_store.get_basic_host_settings(current_network)
+            if current_network
+            else {}
+        )
         return jsonify({
             "current_network": current_network,
             "current_network_label": (
@@ -185,6 +194,9 @@ def create_app(config_store: ConfigStore) -> Flask:
                 if current_network
                 else None
             ),
+            "current_network_settings": current_network_settings,
+            "active_call": snapshot["active_call"],
+            "last_update_at": snapshot["last_update_at"],
         })
 
     @app.get("/api/config")
@@ -226,6 +238,8 @@ def create_app(config_store: ConfigStore) -> Flask:
         session_token = session.get("ui_token")
         if session_token is not None:
             session["ui_token"] = config_store.api_token
+        if telegram_service is not None:
+            telegram_service.request_dashboard_refresh()
         return jsonify({
             "success": True,
             "config": config_store.get_app_config(),

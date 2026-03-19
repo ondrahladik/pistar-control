@@ -65,6 +65,7 @@
             <li><code>/api/networks</code> vyžaduje autorizaci</li>
             <li><code>/api/status</code> vyžaduje autorizaci</li>
             <li><code>/api/config</code> vyžaduje autorizaci</li>
+            <li><code>/api/hosts/&lt;name&gt;</code> vyžaduje autorizaci</li>
         </ul>
     </article>
 
@@ -81,6 +82,17 @@
 </section>
 
 <section class="endpoint-list">
+    <article class="panel">
+        <span class="method">PAGE</span>
+        <span class="path">/config</span>
+        <p>Webová stránka pro správu obsahu <code>config/app.ini</code> a jednotlivých host souborů. Po načtení si bere data z <code>/api/config</code>, <code>/api/networks</code> a <code>/api/hosts/&lt;name&gt;</code>.</p>
+        <ul>
+            <li>umožňuje upravit sekce <code>api</code>, <code>aliases</code> a <code>telegram</code></li>
+            <li>umožňuje samostatně načítat a ukládat obsah host konfigurací</li>
+            <li>pro uložení změn používá <code>POST /api/config</code> a <code>POST /api/hosts/&lt;name&gt;</code></li>
+        </ul>
+    </article>
+
     <article class="panel">
         <span class="method">GET</span>
         <span class="path">/api/networks</span>
@@ -155,6 +167,36 @@
       "port": "5000",
       "token": "muj_token"
     }
+  }
+}</pre>
+    </article>
+
+    <article class="panel">
+        <span class="method">GET</span>
+        <span class="path">/api/hosts/&lt;name&gt;</span>
+        <p>Načte obsah konkrétní host konfigurace podle jejího identifikátoru.</p>
+        <pre>{
+  "host": {
+    "id": "host1",
+    "label": "Síť 1",
+    "content": "..." 
+  }
+}</pre>
+    </article>
+
+    <article class="panel">
+        <span class="method">POST</span>
+        <span class="path">/api/hosts/&lt;name&gt;</span>
+        <p>Uloží nový obsah konkrétní host konfigurace a vrátí uložená data.</p>
+        <pre>{
+  "content": "..." 
+}</pre>
+        <pre>{
+  "success": true,
+  "host": {
+    "id": "host1",
+    "label": "Síť 1",
+    "content": "..."
   }
 }</pre>
     </article>

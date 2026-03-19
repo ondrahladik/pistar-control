@@ -1,80 +1,74 @@
 {% extends "base.html" %}
 
+{% block extra_head %}
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+>
+{% endblock %}
+
 {% block content %}
 <style>
-    .hero-stats {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 24px;
-    }
-
-    .stat {
-        min-width: 150px;
-        padding: 14px 16px;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .stat strong {
-        display: block;
-        margin-bottom: 6px;
-        font-size: 1.15rem;
-    }
-
-    .button-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
+    .config-shell {
+        display: grid;
+        gap: 24px;
     }
 
     .config-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 18px;
-        margin-top: 26px;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
     }
 
-    .section-card h2 {
-        margin: 0 0 14px;
-        font-size: 1.15rem;
+    .config-title {
+        margin-bottom: 10px;
+        font-size: clamp(1.9rem, 3.4vw, 3.1rem);
     }
 
-    .fields {
-        display: grid;
-        gap: 14px;
+    .config-card {
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 24px;
+        background: rgba(11, 19, 33, 0.92);
     }
 
-    .config-field {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
+    .config-card .card-body {
+        padding: 24px;
     }
 
-    .config-field label {
-        font-size: 0.92rem;
-        color: var(--muted);
-    }
-
-    .config-field input {
-        width: 100%;
-        padding: 14px 16px;
-        border: 0;
-        border-radius: 16px;
+    .config-card .card-title {
         color: var(--text);
+    }
+
+    .config-card .card-subtitle,
+    .form-label,
+    .form-text,
+    .form-check-label {
+        color: var(--muted) !important;
+    }
+
+    .form-control,
+    .form-select {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
         background: rgba(255, 255, 255, 0.05);
-        font: inherit;
+        color: var(--text);
     }
 
-    .hosts-panel {
-        margin-top: 28px;
+    .form-control:focus,
+    .form-select:focus {
+        border-color: rgba(89, 197, 255, 0.4);
+        box-shadow: 0 0 0 0.25rem rgba(89, 197, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
     }
 
-    .hosts-list {
-        display: grid;
-        gap: 14px;
-        margin-top: 18px;
+    .form-control::placeholder {
+        color: rgba(155, 174, 208, 0.7);
+    }
+
+    textarea.form-control {
+        min-height: 170px;
+        font: 13px/1.55 Consolas, "Courier New", monospace;
     }
 
     .host-item {
@@ -88,12 +82,11 @@
         list-style: none;
         cursor: pointer;
         padding: 18px 20px;
-        font-weight: 600;
-        color: var(--text);
         display: flex;
-        align-items: center;
         justify-content: space-between;
         gap: 12px;
+        color: var(--text);
+        font-weight: 600;
     }
 
     .host-item summary::-webkit-details-marker {
@@ -102,8 +95,8 @@
 
     .host-item summary span {
         color: var(--muted);
-        font-weight: 500;
         font-size: 0.92rem;
+        font-weight: 500;
     }
 
     .host-body {
@@ -112,64 +105,45 @@
         padding: 0 20px 20px;
     }
 
-    .host-body textarea {
-        width: 100%;
-        min-height: 320px;
-        padding: 16px 18px;
-        border: 0;
-        border-radius: 18px;
-        color: var(--text);
-        background: rgba(255, 255, 255, 0.05);
-        font: 13px/1.5 Consolas, "Courier New", monospace;
-        resize: vertical;
-    }
-
     .host-actions {
         display: flex;
         justify-content: flex-end;
-        gap: 12px;
     }
 
-    @media (max-width: 900px) {
-        .button-row {
-            flex-direction: column;
-        }
+    .field-pair {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
 
-        .host-actions {
-            flex-direction: column;
+    @media (max-width: 700px) {
+        .field-pair {
+            grid-template-columns: 1fr;
         }
     }
 </style>
 
-<section class="panel">
-    <span class="eyebrow">Config</span>
-    <h1>Konfigurace serveru</h1>
-    <div class="hero-stats">
-        <div class="stat">
-            <strong id="sectionCount">0</strong>
-            <span>Sekcí v konfiguraci</span>
+<section class="config-shell">
+    <section class="panel">
+        <span class="eyebrow">Config</span>
+        <h1 class="config-title">Konfigurace serveru</h1>
+        <div id="status" class="status mt-3">Načítám konfiguraci...</div>
+    </section>
+
+    <section id="configGrid" class="config-grid"></section>
+
+    <section class="panel">
+        <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1">Správa host konfigurací</h2>
+                <p>Upravte obsah jednotlivých host souborů a uložte je bez zásahu do ostatních sekcí.</p>
+            </div>
+            <button id="bottomSaveButton" class="button primary" type="button" disabled>Uložit konfiguraci</button>
         </div>
-        <div class="stat">
-            <strong id="fieldCount">0</strong>
-            <span>Načtených hodnot</span>
+        <div id="hostsList" class="mt-4 d-grid gap-3">
+            <div class="status">Načítám hosty...</div>
         </div>
-    </div>
-    <div id="status" class="status" style="margin-top: 18px;">Načítám konfiguraci...</div>
-</section>
-
-<section id="configGrid" class="config-grid"></section>
-
-<section class="panel hosts-panel">
-    <h2>Správa host konfigurací</h2>
-    <div id="hostsList" class="hosts-list">
-        <div class="status">Načítám hosty...</div>
-    </div>
-</section>
-
-<section class="panel" style="margin-top: 28px;">
-    <div class="button-row">
-        <button id="bottomSaveButton" class="button primary" type="button" disabled>Uložit konfiguraci</button>
-    </div>
+    </section>
 </section>
 
 <script>
@@ -177,18 +151,97 @@
     const statusNode = document.getElementById("status");
     const configGrid = document.getElementById("configGrid");
     const hostsList = document.getElementById("hostsList");
-    const sectionCount = document.getElementById("sectionCount");
-    const fieldCount = document.getElementById("fieldCount");
+    const TEXTAREA_FIELDS = new Set([]);
+
+    const CHECKBOX_FIELDS = new Set([
+        "telegram.enabled"
+    ]);
+
+    const PASSWORD_FIELDS = new Set([
+        "telegram.bot_token",
+        "api.token"
+    ]);
+
+    const PAIRED_FIELDS = [
+        ["telegram.chat_id", "telegram.thread_id"]
+    ];
 
     let currentConfig = {};
 
     function setStatus(message, kind = "") {
         statusNode.textContent = message;
-        statusNode.className = kind ? `status ${kind}` : "status";
+        statusNode.className = kind ? `status mt-3 ${kind}` : "status mt-3";
     }
 
     function setLoading(isLoading) {
         bottomSaveButton.disabled = isLoading || Object.keys(currentConfig).length === 0;
+    }
+
+    function prettifySectionName(sectionName) {
+        if (sectionName === "telegram") {
+            return "Telegram";
+        }
+        if (sectionName === "aliases") {
+            return "Aliasy sítí";
+        }
+        if (sectionName === "api") {
+            return "API";
+        }
+        return sectionName;
+    }
+
+    function prettifyFieldName(sectionName, key) {
+        const names = {
+            "telegram.enabled": "Telegram zapnutý",
+            "telegram.bot_token": "Telegram Bot Token",
+            "telegram.chat_id": "Chat ID",
+            "telegram.thread_id": "Thread ID",
+            "api.port": "Port",
+            "api.token": "API token"
+        };
+        return names[`${sectionName}.${key}`] || key;
+    }
+
+    function createField(sectionName, key, value) {
+        const fieldId = `${sectionName}.${key}`;
+        const wrapper = document.createElement("div");
+        wrapper.className = CHECKBOX_FIELDS.has(fieldId) ? "form-check form-switch" : "mb-3";
+
+        const label = document.createElement("label");
+        label.className = CHECKBOX_FIELDS.has(fieldId) ? "form-check-label" : "form-label";
+        label.htmlFor = fieldId;
+        label.textContent = prettifyFieldName(sectionName, key);
+
+        let input;
+        if (TEXTAREA_FIELDS.has(fieldId)) {
+            input = document.createElement("textarea");
+            input.className = "form-control";
+            input.rows = 7;
+            input.value = value;
+        } else {
+            input = document.createElement("input");
+            input.className = CHECKBOX_FIELDS.has(fieldId) ? "form-check-input" : "form-control";
+
+            if (CHECKBOX_FIELDS.has(fieldId)) {
+                input.type = "checkbox";
+                input.checked = String(value).toLowerCase() === "true";
+            } else {
+                input.type = PASSWORD_FIELDS.has(fieldId) ? "password" : "text";
+                input.value = value;
+            }
+        }
+
+        input.id = fieldId;
+        input.dataset.section = sectionName;
+        input.dataset.key = key;
+
+        if (CHECKBOX_FIELDS.has(fieldId)) {
+            wrapper.append(input, label);
+        } else {
+            wrapper.append(label, input);
+        }
+
+        return wrapper;
     }
 
     function renderConfig(config) {
@@ -199,95 +252,112 @@
         let totalFields = 0;
 
         sections.forEach(([sectionName, values]) => {
-            const card = document.createElement("article");
-            card.className = "panel section-card";
+            const article = document.createElement("article");
+            article.className = "card config-card";
+
+            const body = document.createElement("div");
+            body.className = "card-body";
 
             const title = document.createElement("h2");
-            title.textContent = sectionName;
+            title.className = "card-title h4";
+            title.textContent = prettifySectionName(sectionName);
 
-            const fields = document.createElement("div");
-            fields.className = "fields";
+            body.append(title);
+
+            const pairedFieldIds = new Set(PAIRED_FIELDS.flat());
+            const renderedPairs = new Set();
 
             Object.entries(values).forEach(([key, value]) => {
                 totalFields += 1;
+                const fieldId = `${sectionName}.${key}`;
+                const pair = PAIRED_FIELDS.find((items) => items.includes(fieldId));
 
-                const wrapper = document.createElement("div");
-                wrapper.className = "config-field";
+                if (pair) {
+                    const pairKey = pair.join("|");
+                    if (renderedPairs.has(pairKey)) {
+                        return;
+                    }
+                    renderedPairs.add(pairKey);
 
-                const label = document.createElement("label");
-                label.htmlFor = `${sectionName}.${key}`;
-                label.textContent = key;
+                    const pairWrapper = document.createElement("div");
+                    pairWrapper.className = "field-pair";
 
-                const input = document.createElement("input");
-                input.id = `${sectionName}.${key}`;
-                input.name = `${sectionName}.${key}`;
-                input.value = value;
-                input.dataset.section = sectionName;
-                input.dataset.key = key;
+                    pair.forEach((pairedFieldId) => {
+                        const [pairedSection, pairedKey] = pairedFieldId.split(".");
+                        const pairedValue = config[pairedSection]?.[pairedKey] || "";
+                        pairWrapper.appendChild(createField(pairedSection, pairedKey, pairedValue));
+                    });
 
-                wrapper.append(label, input);
-                fields.appendChild(wrapper);
+                    body.appendChild(pairWrapper);
+                    return;
+                }
+
+                if (!pairedFieldIds.has(fieldId)) {
+                    body.appendChild(createField(sectionName, key, value));
+                }
             });
 
-            card.append(title, fields);
-            configGrid.appendChild(card);
+            article.appendChild(body);
+            configGrid.appendChild(article);
         });
 
-        sectionCount.textContent = String(sections.length);
-        fieldCount.textContent = String(totalFields);
-
-        const hasConfig = sections.length > 0;
-        bottomSaveButton.disabled = !hasConfig;
+        bottomSaveButton.disabled = sections.length === 0;
     }
 
     function collectConfig() {
         const nextConfig = {};
 
-        document.querySelectorAll(".config-field input").forEach((input) => {
+        document.querySelectorAll("[data-section][data-key]").forEach((input) => {
             const section = input.dataset.section;
             const key = input.dataset.key;
+            const fieldId = `${section}.${key}`;
 
             if (!nextConfig[section]) {
                 nextConfig[section] = {};
             }
 
-            nextConfig[section][key] = input.value;
+            nextConfig[section][key] = CHECKBOX_FIELDS.has(fieldId)
+                ? String(input.checked)
+                : input.value;
         });
 
         return nextConfig;
     }
 
-    async function loadHost(name) {
-        const response = await fetch(`/api/hosts/${name}`);
+    async function apiRequest(url, options = {}) {
+        const response = await fetch(url, options);
+        const payload = await response.json().catch(() => ({}));
+
         if (!response.ok) {
-            const payload = await response.json().catch(() => ({}));
-            throw new Error(payload.error || "Nepodařilo se načíst host.");
+            throw new Error(payload.error || "Požadavek se nepodařilo dokončit.");
         }
 
-        const payload = await response.json();
+        return payload;
+    }
+
+    async function loadHost(name) {
+        const payload = await apiRequest(`/api/hosts/${name}`);
         return payload.host;
     }
 
     async function saveHost(name, content) {
-        const response = await fetch(`/api/hosts/${name}`, {
+        const payload = await apiRequest(`/api/hosts/${name}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ content })
         });
-
-        if (!response.ok) {
-            const payload = await response.json().catch(() => ({}));
-            throw new Error(payload.error || "Nepodařilo se uložit host.");
-        }
-
-        const payload = await response.json();
         return payload.host;
     }
 
     function renderHosts(hosts) {
         hostsList.innerHTML = "";
+
+        if (hosts.length === 0) {
+            hostsList.innerHTML = '<div class="status">Žádné host konfigurace nejsou dostupné.</div>';
+            return;
+        }
 
         hosts.forEach((host) => {
             const item = document.createElement("details");
@@ -300,6 +370,7 @@
             body.className = "host-body";
 
             const textarea = document.createElement("textarea");
+            textarea.className = "form-control";
             textarea.value = host.content;
             textarea.dataset.host = host.id;
 
@@ -347,7 +418,8 @@
         hostsList.innerHTML = '<div class="status">Načítám hosty...</div>';
 
         try {
-            const hostIds = ["host1", "host2"];
+            const networksPayload = await apiRequest("/api/networks");
+            const hostIds = (networksPayload.networks || []).map((network) => network.id);
             const hosts = await Promise.all(hostIds.map((hostId) => loadHost(hostId)));
             renderHosts(hosts);
         } catch (error) {
@@ -364,13 +436,7 @@
         setStatus("Načítám konfiguraci...");
 
         try {
-            const response = await fetch("/api/config");
-            if (!response.ok) {
-                const payload = await response.json().catch(() => ({}));
-                throw new Error(payload.error || "Nepodařilo se načíst konfiguraci.");
-            }
-
-            const payload = await response.json();
+            const payload = await apiRequest("/api/config");
             renderConfig(payload.config || {});
             setStatus("Konfigurace byla úspěšně načtena.", "success");
         } catch (error) {
@@ -390,7 +456,7 @@
         setStatus("Ukládám změny do app.ini...");
 
         try {
-            const response = await fetch("/api/config", {
+            const payload = await apiRequest("/api/config", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -398,14 +464,8 @@
                 body: JSON.stringify({ config })
             });
 
-            if (!response.ok) {
-                const payload = await response.json().catch(() => ({}));
-                throw new Error(payload.error || "Nepodařilo se uložit konfiguraci.");
-            }
-
-            const payload = await response.json();
             renderConfig(payload.config || {});
-            loadHosts();
+            await loadHosts();
             setStatus("Konfigurace byla uložena.", "success");
         } catch (error) {
             if (error.message === "Unauthorized") {

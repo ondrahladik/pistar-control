@@ -1,5 +1,8 @@
 import configparser
 import os
+import re
+import threading
+import unicodedata
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -18,6 +21,17 @@ class ConfigStore:
             "host1": "Síť 1",
             "host2": "Síť 2",
         }
+        self._default_api_config = {
+            "port": "5000",
+            "token": "pistar",
+        }
+        self._default_telegram_config = {
+            "enabled": "false",
+            "bot_token": "",
+            "chat_id": "",
+            "thread_id": "",
+        }
+        self._lock = threading.RLock()
         self._app_config = configparser.ConfigParser()
         self._prepare_runtime_files()
         self.reload()
@@ -30,6 +44,8 @@ class ConfigStore:
         if self._is_writable_directory(source_dir):
             return source_dir
 
+        # When the bundled project config is mounted read-only, keep it as the
+        # source of defaults but place runtime edits into a writable user dir.
         return Path.home() / ".config" / "pistar-control"
 
     def _prepare_runtime_files(self) -> None:
@@ -59,12 +75,22 @@ class ConfigStore:
             return False
 
     def reload(self) -> None:
-        self._app_config = configparser.ConfigParser()
-        self._app_config.read(self._app_path, encoding="utf-8")
-        self._ensure_defaults()
+        with self._lock:
+            self._app_config = configparser.ConfigParser()
+            self._app_config.read(self._app_path, encoding="utf-8")
+            self._ensure_defaults()
 
     def _ensure_defaults(self) -> None:
         changed = False
+
+        if not self._app_config.has_section("api"):
+            self._app_config.add_section("api")
+            changed = True
+
+        for key, value in self._default_api_config.items():
+            if not self._app_config.has_option("api", key):
+                self._app_config.set("api", key, value)
+                changed = True
 
         if not self._app_config.has_section("aliases"):
             self._app_config.add_section("aliases")
@@ -75,41 +101,69 @@ class ConfigStore:
                 self._app_config.set("aliases", host, alias)
                 changed = True
 
+        if not self._app_config.has_section("telegram"):
+            self._app_config.add_section("telegram")
+            changed = True
+
+        for key, value in self._default_telegram_config.items():
+            if not self._app_config.has_option("telegram", key):
+                self._app_config.set("telegram", key, value)
+                changed = True
+
         if changed:
             with self._app_path.open("w", encoding="utf-8") as config_file:
                 self._app_config.write(config_file)
 
     def get_app_config(self) -> Dict[str, Dict[str, str]]:
-        return {
-            section: {
-                key: value
-                for key, value in self._app_config.items(section)
+        with self._lock:
+            return {
+                section: {
+                    key: value
+                    for key, value in self._app_config.items(section)
+                }
+                for section in self._app_config.sections()
             }
-            for section in self._app_config.sections()
-        }
+        
 
     def update_app_config(self, data: Dict[str, Dict[str, str]]) -> None:
-        self._app_config = configparser.ConfigParser()
+        with self._lock:
+            current_config = self.get_app_config()
+            preserved_fields = {
+                ("api", "token"),
+                ("telegram", "bot_token"),
+                ("telegram", "chat_id"),
+            }
 
-        for section, values in data.items():
-            self._app_config[section] = {}
-            for key, value in values.items():
-                self._app_config[section][key] = value
+            self._app_config = configparser.ConfigParser()
 
-        with self._app_path.open("w", encoding="utf-8") as config_file:
-            self._app_config.write(config_file)
+            for section, values in data.items():
+                self._app_config[section] = {}
+                for key, value in values.items():
+                    next_value = value
+                    if (
+                        (section, key) in preserved_fields
+                        and value == ""
+                        and section in current_config
+                        and key in current_config[section]
+                    ):
+                        next_value = current_config[section][key]
+                    self._app_config[section][key] = next_value
 
-        self.reload()
+            with self._app_path.open("w", encoding="utf-8") as config_file:
+                self._app_config.write(config_file)
+
+            self.reload()
 
     def get_network_aliases(self) -> Dict[str, str]:
-        aliases = {
-            host: self._app_config.get("aliases", host, fallback=default_alias)
-            for host, default_alias in self._default_aliases.items()
-        }
-        return {
-            host: aliases.get(host, host)
-            for host in self.list_networks()
-        }
+        with self._lock:
+            aliases = {
+                host: self._app_config.get("aliases", host, fallback=default_alias)
+                for host, default_alias in self._default_aliases.items()
+            }
+            return {
+                host: aliases.get(host, host)
+                for host in self.list_networks()
+            }
 
     def get_network_alias(self, name: str) -> str:
         return self.get_network_aliases().get(name, name)
@@ -127,15 +181,76 @@ class ConfigStore:
         self.get_network(name).write_text(content, encoding="utf-8")
 
     def list_networks(self) -> List[str]:
-        return [name for name, path in self._host_paths.items() if path.exists()]
+        with self._lock:
+            return [name for name, path in self._host_paths.items() if path.exists()]
+
+    def get_basic_host_settings(self, name: str) -> Dict[str, str]:
+        if name not in self._host_paths:
+            return {}
+
+        parser = configparser.ConfigParser()
+        try:
+            parser.read_string(self.get_host_content(name))
+        except (OSError, configparser.Error):
+            return {}
+
+        return {
+            "callsign": parser.get("General", "Callsign", fallback=""),
+            "id": parser.get("General", "Id", fallback=""),
+        }
+
+    def detect_network_by_content(self, active_config_path: Path) -> Optional[str]:
+        try:
+            active_content = active_config_path.read_text(encoding="utf-8")
+        except OSError:
+            return None
+
+        normalized_active_content = _normalize_config_content(active_content)
+        if not normalized_active_content:
+            return None
+
+        with self._lock:
+            for name, path in self._host_paths.items():
+                if not path.exists():
+                    continue
+                try:
+                    candidate_content = path.read_text(encoding="utf-8")
+                except OSError:
+                    continue
+
+                if _normalize_config_content(candidate_content) == normalized_active_content:
+                    return name
+
+        return None
 
     @property
     def api_port(self) -> int:
-        return self._app_config.getint("api", "port", fallback=5000)
+        with self._lock:
+            return self._app_config.getint("api", "port", fallback=5000)
 
     @property
     def api_token(self) -> str:
-        return self._app_config.get("api", "token", fallback="")
+        with self._lock:
+            return self._app_config.get("api", "token", fallback="")
+
+    @property
+    def runtime_state_path(self) -> Path:
+        return self._config_dir / "runtime-state.json"
+
+    def get_telegram_config(self) -> Dict[str, str]:
+        with self._lock:
+            return {
+                key: self._app_config.get("telegram", key, fallback=value)
+                for key, value in self._default_telegram_config.items()
+            }
+
+    def get_telegram_aliases(self) -> Dict[str, str]:
+        aliases: Dict[str, str] = {}
+        for network, alias in self.get_network_aliases().items():
+            normalized_command = _normalize_command_alias(alias)
+            if normalized_command:
+                aliases[normalized_command] = network
+        return aliases
 
 
 _default_store: Optional[ConfigStore] = None
@@ -169,6 +284,10 @@ def get_api_token() -> str:
     return _get_default_store().api_token
 
 
+def get_runtime_state_path() -> Path:
+    return _get_default_store().runtime_state_path
+
+
 def get_app_config() -> Dict[str, Dict[str, str]]:
     return _get_default_store().get_app_config()
 
@@ -185,6 +304,14 @@ def get_network_alias(name: str) -> str:
     return _get_default_store().get_network_alias(name)
 
 
+def get_telegram_config() -> Dict[str, str]:
+    return _get_default_store().get_telegram_config()
+
+
+def get_telegram_aliases() -> Dict[str, str]:
+    return _get_default_store().get_telegram_aliases()
+
+
 def get_host_content(name: str) -> str:
     return _get_default_store().get_host_content(name)
 
@@ -193,8 +320,26 @@ def update_host_content(name: str, content: str) -> None:
     _get_default_store().update_host_content(name, content)
 
 
+def get_basic_host_settings(name: str) -> Dict[str, str]:
+    return _get_default_store().get_basic_host_settings(name)
+
+
 def _get_default_store() -> ConfigStore:
     if _default_store is None:
         raise RuntimeError("Configuration has not been loaded")
 
     return _default_store
+
+
+def _normalize_command_alias(value: str) -> str:
+    ascii_value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+    uppercase_shortcut = "".join(character for character in ascii_value if character.isupper())
+    if 2 <= len(uppercase_shortcut) <= 4:
+        return uppercase_shortcut.lower()
+
+    normalized = re.sub(r"[^a-zA-Z0-9]+", "", ascii_value).lower()
+    return normalized
+
+
+def _normalize_config_content(value: str) -> str:
+    return value.replace("\r\n", "\n").strip()
