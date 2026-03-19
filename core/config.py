@@ -1,6 +1,7 @@
 import configparser
 import os
 import re
+import tempfile
 import threading
 import unicodedata
 from pathlib import Path
@@ -49,12 +50,39 @@ class ConfigStore:
         if override_dir:
             return Path(override_dir).expanduser()
 
-        if self._is_writable_directory(source_dir):
-            return source_dir
+        for candidate in self._runtime_dir_candidates(source_dir):
+            if self._is_writable_directory(candidate):
+                return candidate
 
-        # When the bundled project config is mounted read-only, keep it as the
-        # source of defaults but place runtime edits into a writable user dir.
-        return Path.home() / ".config" / "pistar-control"
+        # As a last resort, use a temp directory so the app can still start.
+        return Path(tempfile.gettempdir()) / "pistar-control"
+
+    def _runtime_dir_candidates(self, source_dir: Path) -> List[Path]:
+        candidates: List[Path] = [source_dir]
+
+        sudo_user = os.environ.get("SUDO_USER")
+        if sudo_user:
+            sudo_home = Path("/home") / sudo_user / ".config" / "pistar-control"
+            candidates.append(sudo_home)
+
+        candidates.extend(
+            [
+                Path.home() / ".config" / "pistar-control",
+                Path("/var/log/pi-star") / "pistar-control",
+                Path("/tmp") / "pistar-control",
+            ]
+        )
+
+        unique_candidates: List[Path] = []
+        seen = set()
+        for candidate in candidates:
+            normalized = str(candidate)
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            unique_candidates.append(candidate)
+
+        return unique_candidates
 
     def _prepare_runtime_files(self) -> None:
         self._config_dir.mkdir(parents=True, exist_ok=True)

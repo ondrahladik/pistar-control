@@ -11,14 +11,18 @@ _state_path: Optional[Path] = None
 _change_version = 0
 _persistent_keys = {
     "current_network",
+    "telegram_chat_id",
     "telegram_message_id",
+    "telegram_thread_id",
     "telegram_update_offset",
 }
 
 state: Dict[str, Any] = {
     "current_network": None,
     "active_call": None,
+    "telegram_chat_id": None,
     "telegram_message_id": None,
+    "telegram_thread_id": None,
     "telegram_update_offset": 0,
     "last_update_at": None,
 }
@@ -40,7 +44,9 @@ def get_state_snapshot() -> Dict[str, Any]:
         return {
             "current_network": state.get("current_network"),
             "active_call": dict(active_call) if isinstance(active_call, dict) else None,
+            "telegram_chat_id": state.get("telegram_chat_id"),
             "telegram_message_id": state.get("telegram_message_id"),
+            "telegram_thread_id": state.get("telegram_thread_id"),
             "telegram_update_offset": state.get("telegram_update_offset", 0),
             "last_update_at": state.get("last_update_at"),
         }
@@ -123,7 +129,9 @@ def _snapshot_locked() -> Dict[str, Any]:
     return {
         "current_network": state.get("current_network"),
         "active_call": dict(active_call) if isinstance(active_call, dict) else None,
+        "telegram_chat_id": state.get("telegram_chat_id"),
         "telegram_message_id": state.get("telegram_message_id"),
+        "telegram_thread_id": state.get("telegram_thread_id"),
         "telegram_update_offset": state.get("telegram_update_offset", 0),
         "last_update_at": state.get("last_update_at"),
     }

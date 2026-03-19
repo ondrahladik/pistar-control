@@ -80,15 +80,19 @@ class TelegramBotService:
             self._maybe_update_dashboard(telegram_config, force=False)
             return
 
+        target_chat_id = _resolve_chat_id(telegram_config, snapshot)
+        if not target_chat_id:
+            return
+
         logger.info("Creating dashboard message")
         response = self._call_telegram(
             telegram_config=telegram_config,
             method_name="sendMessage",
             payload={
-                "chat_id": telegram_config["chat_id"],
+                "chat_id": target_chat_id,
                 "text": self._render_dashboard_text(),
                 "reply_markup": self._render_reply_markup(),
-                **_thread_payload(telegram_config),
+                **_thread_payload(telegram_config, snapshot),
             },
         )
         result = response.get("result", {})
@@ -143,10 +147,13 @@ class TelegramBotService:
         chat = message.get("chat", {})
         message_id = message.get("message_id")
         chat_id = str(chat.get("id", ""))
-        if chat_id != str(telegram_config["chat_id"]):
+        snapshot = get_state_snapshot()
+        if not self._matches_target_chat(telegram_config, snapshot, chat_id):
             return
-        if not _matches_thread(telegram_config, message.get("message_thread_id")):
+        if not _matches_thread(telegram_config, snapshot, message.get("message_thread_id")):
             return
+
+        self._remember_chat_binding(chat_id, message.get("message_thread_id"))
 
         command = text.split("@", 1)[0].split()[0].lstrip("/").lower()
         aliases = self._config_store.get_telegram_aliases()
@@ -168,11 +175,21 @@ class TelegramBotService:
         message = callback_query.get("message", {})
         chat = message.get("chat", {}) if isinstance(message, dict) else {}
         chat_id = str(chat.get("id", ""))
+        snapshot = get_state_snapshot()
 
-        if chat_id != str(telegram_config["chat_id"]):
+        if not self._matches_target_chat(telegram_config, snapshot, chat_id):
             return
-        if not _matches_thread(telegram_config, message.get("message_thread_id") if isinstance(message, dict) else None):
+        if not _matches_thread(
+            telegram_config,
+            snapshot,
+            message.get("message_thread_id") if isinstance(message, dict) else None,
+        ):
             return
+
+        self._remember_chat_binding(
+            chat_id,
+            message.get("message_thread_id") if isinstance(message, dict) else None,
+        )
 
         if isinstance(payload, str) and payload.startswith("switch:"):
             command = payload.split(":", 1)[1].strip().lower()
@@ -239,7 +256,10 @@ class TelegramBotService:
 
         snapshot = get_state_snapshot()
         message_id = snapshot.get("telegram_message_id")
+        target_chat_id = _resolve_chat_id(telegram_config, snapshot)
         if not isinstance(message_id, int):
+            return
+        if not target_chat_id:
             return
 
         try:
@@ -247,7 +267,7 @@ class TelegramBotService:
                 telegram_config=telegram_config,
                 method_name="editMessageText",
                 payload={
-                    "chat_id": telegram_config["chat_id"],
+                    "chat_id": target_chat_id,
                     "message_id": message_id,
                     "text": text,
                     "reply_markup": markup,
@@ -265,6 +285,32 @@ class TelegramBotService:
             if "message to edit not found" in str(exc).lower():
                 update_state(telegram_message_id=None)
             logger.warning("editMessageText failed: %s", exc)
+
+    @staticmethod
+    def _matches_target_chat(
+        telegram_config: Dict[str, str],
+        snapshot: Dict[str, Any],
+        chat_id: str,
+    ) -> bool:
+        target_chat_id = _resolve_chat_id(telegram_config, snapshot)
+        if target_chat_id:
+            return chat_id == target_chat_id
+
+        return bool(chat_id)
+
+    @staticmethod
+    def _remember_chat_binding(chat_id: str, thread_id: Any) -> None:
+        updates: Dict[str, Any] = {}
+        snapshot = get_state_snapshot()
+        if chat_id and snapshot.get("telegram_chat_id") != chat_id:
+            updates["telegram_chat_id"] = chat_id
+
+        normalized_thread_id = str(thread_id) if thread_id is not None else ""
+        if snapshot.get("telegram_thread_id") != normalized_thread_id:
+            updates["telegram_thread_id"] = normalized_thread_id
+
+        if updates:
+            update_state(**updates)
 
     def _render_dashboard_text(self) -> str:
         self._config_store.reload()
@@ -370,20 +416,40 @@ def _get_readiness_reason(telegram_config: Dict[str, str]) -> Optional[str]:
         return "disabled in config"
     if not telegram_config.get("bot_token"):
         return "missing bot token"
-    if not telegram_config.get("chat_id"):
-        return "missing chat id"
     return None
 
 
-def _thread_payload(telegram_config: Dict[str, str]) -> Dict[str, str]:
-    thread_id = telegram_config.get("thread_id", "").strip()
+def _thread_payload(telegram_config: Dict[str, str], snapshot: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
+    thread_id = _resolve_thread_id(telegram_config, snapshot or get_state_snapshot())
     if not thread_id:
         return {}
     return {"message_thread_id": thread_id}
 
 
-def _matches_thread(telegram_config: Dict[str, str], message_thread_id: Any) -> bool:
-    configured_thread_id = telegram_config.get("thread_id", "").strip()
+def _matches_thread(
+    telegram_config: Dict[str, str],
+    snapshot: Optional[Dict[str, Any]],
+    message_thread_id: Any,
+) -> bool:
+    configured_thread_id = _resolve_thread_id(telegram_config, snapshot or get_state_snapshot())
     if not configured_thread_id:
         return True
     return str(message_thread_id or "") == configured_thread_id
+
+
+def _resolve_chat_id(telegram_config: Dict[str, str], snapshot: Dict[str, Any]) -> str:
+    configured_chat_id = telegram_config.get("chat_id", "").strip()
+    if configured_chat_id:
+        return configured_chat_id
+
+    persisted_chat_id = snapshot.get("telegram_chat_id")
+    return str(persisted_chat_id).strip() if persisted_chat_id is not None else ""
+
+
+def _resolve_thread_id(telegram_config: Dict[str, str], snapshot: Dict[str, Any]) -> str:
+    configured_thread_id = telegram_config.get("thread_id", "").strip()
+    if configured_thread_id:
+        return configured_thread_id
+
+    persisted_thread_id = snapshot.get("telegram_thread_id")
+    return str(persisted_thread_id).strip() if persisted_thread_id is not None else ""
