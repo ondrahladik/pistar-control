@@ -6,8 +6,9 @@ from typing import Any, Dict, Optional
 
 
 lock = threading.Lock()
-change_event = threading.Event()
+change_condition = threading.Condition(lock)
 _state_path: Optional[Path] = None
+_change_version = 0
 _persistent_keys = {
     "current_network",
     "telegram_message_id",
@@ -46,6 +47,7 @@ def get_state_snapshot() -> Dict[str, Any]:
 
 
 def update_state(**updates: Any) -> Dict[str, Any]:
+    global _change_version
     with lock:
         persistent_changed = False
         state_changed = False
@@ -64,7 +66,8 @@ def update_state(**updates: Any) -> Dict[str, Any]:
         _touch_locked()
         if persistent_changed:
             _save_locked()
-        change_event.set()
+        _change_version += 1
+        change_condition.notify_all()
         return _snapshot_locked()
 
 
@@ -87,14 +90,28 @@ def persist_runtime_state() -> None:
 
 
 def wait_for_state_change(timeout: float) -> bool:
-    changed = change_event.wait(timeout)
-    if changed:
-        change_event.clear()
-    return changed
+    current_version = get_state_version()
+    return wait_for_state_change_since(current_version, timeout) != current_version
 
 
 def notify_state_change() -> None:
-    change_event.set()
+    global _change_version
+    with lock:
+        _change_version += 1
+        change_condition.notify_all()
+
+
+def get_state_version() -> int:
+    with lock:
+        return _change_version
+
+
+def wait_for_state_change_since(last_seen_version: int, timeout: float) -> int:
+    with change_condition:
+        if _change_version != last_seen_version:
+            return _change_version
+        change_condition.wait_for(lambda: _change_version != last_seen_version, timeout=timeout)
+        return _change_version
 
 
 def _touch_locked() -> None:

@@ -1,11 +1,12 @@
+import json
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Dict, Optional
 
-from flask import Flask, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, Response, jsonify, redirect, render_template, request, session, stream_with_context, url_for
 
 from core.config import ConfigStore, get_api_token
-from core.state import get_state_snapshot
+from core.state import get_state_snapshot, get_state_version, wait_for_state_change_since
 from core.switcher import switch_network
 
 
@@ -180,24 +181,33 @@ def create_app(config_store: ConfigStore, telegram_service: Optional[Any] = None
     @app.get("/api/status")
     @require_auth
     def get_status() -> Any:
-        snapshot = get_state_snapshot()
-        current_network = snapshot["current_network"]
-        current_network_settings = (
-            config_store.get_basic_host_settings(current_network)
-            if current_network
-            else {}
+        return jsonify(_build_status_payload(config_store))
+
+    @app.get("/api/status/stream")
+    def stream_status() -> Any:
+        if not is_ui_authenticated():
+            return jsonify({"error": "Unauthorized"}), 401
+
+        @stream_with_context
+        def event_stream():
+            last_seen_version = -1
+            while True:
+                current_version = get_state_version()
+                if current_version != last_seen_version:
+                    payload = _build_status_payload(config_store)
+                    yield f"event: status\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+                    last_seen_version = current_version
+                last_seen_version = wait_for_state_change_since(last_seen_version, 15.0)
+                yield ": keep-alive\n\n"
+
+        return Response(
+            event_stream(),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+            },
         )
-        return jsonify({
-            "current_network": current_network,
-            "current_network_label": (
-                config_store.get_network_alias(current_network)
-                if current_network
-                else None
-            ),
-            "current_network_settings": current_network_settings,
-            "active_call": snapshot["active_call"],
-            "last_update_at": snapshot["last_update_at"],
-        })
 
     @app.get("/api/config")
     @require_auth
@@ -214,14 +224,14 @@ def create_app(config_store: ConfigStore, telegram_service: Optional[Any] = None
         if not isinstance(config_data, dict) or not config_data:
             return jsonify({"error": "Missing config data"}), 400
 
-        normalized_config: dict[str, dict[str, str]] = {}
+        normalized_config: Dict[str, Dict[str, str]] = {}
         for section, values in config_data.items():
             if not isinstance(section, str) or not section.strip():
                 return jsonify({"error": "Invalid section name"}), 400
             if not isinstance(values, dict):
                 return jsonify({"error": f"Invalid section payload for {section}"}), 400
 
-            normalized_values: dict[str, str] = {}
+            normalized_values: Dict[str, str] = {}
             for key, value in values.items():
                 if not isinstance(key, str) or not key.strip():
                     return jsonify({"error": "Invalid config key"}), 400
@@ -246,3 +256,35 @@ def create_app(config_store: ConfigStore, telegram_service: Optional[Any] = None
         })
 
     return app
+
+
+def _build_status_payload(config_store: ConfigStore) -> Dict[str, Any]:
+    snapshot = get_state_snapshot()
+    current_network = snapshot["current_network"]
+    current_network_settings = (
+        config_store.get_basic_host_settings(current_network)
+        if current_network
+        else {}
+    )
+    return {
+        "current_network": current_network,
+        "current_network_label": (
+            config_store.get_network_alias(current_network)
+            if current_network
+            else None
+        ),
+        "current_network_display_id": _format_network_display_id(current_network),
+        "current_network_settings": current_network_settings,
+        "active_call": snapshot["active_call"],
+        "last_update_at": snapshot["last_update_at"],
+    }
+
+
+def _format_network_display_id(network_name: Any) -> Optional[str]:
+    if not isinstance(network_name, str) or not network_name:
+        return None
+    if network_name == "host1":
+        return "Host 1"
+    if network_name == "host2":
+        return "Host 2"
+    return network_name

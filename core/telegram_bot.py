@@ -7,7 +7,13 @@ from urllib import error, parse, request
 from api.api_client import ApiClient, ApiClientError
 from core.app_logging import get_logger
 from core.config import ConfigStore
-from core.state import get_state_snapshot, notify_state_change, update_state, wait_for_state_change
+from core.state import (
+    get_state_snapshot,
+    get_state_version,
+    notify_state_change,
+    update_state,
+    wait_for_state_change_since,
+)
 
 logger = get_logger("app.telegram")
 
@@ -22,6 +28,7 @@ class TelegramBotService:
         self._last_rendered_markup = ""
         self._last_edit_attempt_at = 0.0
         self._last_readiness_state: Optional[str] = None
+        self._last_seen_version = get_state_version()
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -50,7 +57,7 @@ class TelegramBotService:
                 if self._last_readiness_state != readiness_reason:
                     logger.info("Bot idle: %s", readiness_reason)
                     self._last_readiness_state = readiness_reason
-                wait_for_state_change(2.0)
+                self._last_seen_version = wait_for_state_change_since(self._last_seen_version, 2.0)
                 continue
 
             try:
@@ -61,10 +68,10 @@ class TelegramBotService:
                 self._maybe_update_dashboard(telegram_config, force=False)
                 self._poll_updates(telegram_config)
                 self._maybe_update_dashboard(telegram_config, force=False)
-                wait_for_state_change(0.05)
+                self._last_seen_version = wait_for_state_change_since(self._last_seen_version, 0.02)
             except Exception as exc:
                 logger.error("Bot loop error: %s: %s", type(exc).__name__, exc)
-                wait_for_state_change(2.0)
+                self._last_seen_version = wait_for_state_change_since(self._last_seen_version, 2.0)
 
     def _ensure_dashboard_message(self, telegram_config: Dict[str, str]) -> None:
         snapshot = get_state_snapshot()
@@ -98,7 +105,7 @@ class TelegramBotService:
             telegram_config=telegram_config,
             method_name="getUpdates",
             payload={
-                "timeout": 1,
+                "timeout": 0,
                 "offset": offset,
             },
         )

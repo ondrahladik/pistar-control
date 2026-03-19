@@ -31,6 +31,14 @@ class ConfigStore:
             "chat_id": "",
             "thread_id": "",
         }
+        self._default_mqtt_config = {
+            "enabled": "false",
+            "server": "",
+            "port": "1883",
+            "username": "",
+            "password": "",
+            "topic": "",
+        }
         self._lock = threading.RLock()
         self._app_config = configparser.ConfigParser()
         self._prepare_runtime_files()
@@ -110,6 +118,15 @@ class ConfigStore:
                 self._app_config.set("telegram", key, value)
                 changed = True
 
+        if not self._app_config.has_section("mqtt"):
+            self._app_config.add_section("mqtt")
+            changed = True
+
+        for key, value in self._default_mqtt_config.items():
+            if not self._app_config.has_option("mqtt", key):
+                self._app_config.set("mqtt", key, value)
+                changed = True
+
         if changed:
             with self._app_path.open("w", encoding="utf-8") as config_file:
                 self._app_config.write(config_file)
@@ -132,6 +149,7 @@ class ConfigStore:
                 ("api", "token"),
                 ("telegram", "bot_token"),
                 ("telegram", "chat_id"),
+                ("mqtt", "password"),
             }
 
             self._app_config = configparser.ConfigParser()
@@ -252,6 +270,13 @@ class ConfigStore:
                 aliases[normalized_command] = network
         return aliases
 
+    def get_mqtt_config(self) -> Dict[str, str]:
+        with self._lock:
+            return {
+                key: self._app_config.get("mqtt", key, fallback=value)
+                for key, value in self._default_mqtt_config.items()
+            }
+
 
 _default_store: Optional[ConfigStore] = None
 
@@ -310,6 +335,10 @@ def get_telegram_config() -> Dict[str, str]:
 
 def get_telegram_aliases() -> Dict[str, str]:
     return _get_default_store().get_telegram_aliases()
+
+
+def get_mqtt_config() -> Dict[str, str]:
+    return _get_default_store().get_mqtt_config()
 
 
 def get_host_content(name: str) -> str:

@@ -16,13 +16,13 @@
 
     .config-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 20px;
     }
 
     .config-title {
         margin-bottom: 10px;
-        font-size: clamp(1.9rem, 3.4vw, 3.1rem);
+        font-size: clamp(1.7rem, 3vw, 2.7rem);
     }
 
     .config-card {
@@ -37,6 +37,31 @@
 
     .config-card .card-title {
         color: var(--text);
+    }
+
+    .config-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .config-card-header .card-title {
+        margin: 0;
+    }
+
+    .section-switch {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 42px;
+    }
+
+    .section-switch .form-check-input {
+        margin: 0;
+        float: none;
+        cursor: pointer;
     }
 
     .config-card .card-subtitle,
@@ -116,6 +141,12 @@
         gap: 14px;
     }
 
+    @media (max-width: 900px) {
+        .config-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
     @media (max-width: 700px) {
         .field-pair {
             grid-template-columns: 1fr;
@@ -154,17 +185,26 @@
     const TEXTAREA_FIELDS = new Set([]);
 
     const CHECKBOX_FIELDS = new Set([
-        "telegram.enabled"
+        "telegram.enabled",
+        "mqtt.enabled"
     ]);
 
     const PASSWORD_FIELDS = new Set([
         "telegram.bot_token",
-        "api.token"
+        "api.token",
+        "mqtt.password"
     ]);
 
     const PAIRED_FIELDS = [
-        ["telegram.chat_id", "telegram.thread_id"]
+        ["telegram.chat_id", "telegram.thread_id"],
+        ["mqtt.username", "mqtt.password"],
+        ["mqtt.server", "mqtt.port"]
     ];
+
+    const SECTION_TOGGLE_FIELDS = {
+        telegram: "enabled",
+        mqtt: "enabled"
+    };
 
     let currentConfig = {};
 
@@ -187,19 +227,50 @@
         if (sectionName === "api") {
             return "API";
         }
+        if (sectionName === "mqtt") {
+            return "MQTT";
+        }
         return sectionName;
     }
 
     function prettifyFieldName(sectionName, key) {
         const names = {
             "telegram.enabled": "Telegram zapnutý",
-            "telegram.bot_token": "Telegram Bot Token",
+            "telegram.bot_token": "Bot Token",
             "telegram.chat_id": "Chat ID",
             "telegram.thread_id": "Thread ID",
             "api.port": "Port",
-            "api.token": "API token"
+            "api.token": "API token",
+            "aliases.host1": "Host 1",
+            "aliases.host2": "Host 2",
+            "mqtt.server": "Server",
+            "mqtt.port": "Port",
+            "mqtt.username": "Jméno",
+            "mqtt.password": "Heslo",
+            "mqtt.enabled": "MQTT zapnuté",
+            "mqtt.topic": "Topic"
         };
         return names[`${sectionName}.${key}`] || key;
+    }
+
+    function getOrderedSections(config) {
+        const preferredOrder = ["aliases", "api", "mqtt", "telegram"];
+        const configEntries = Object.entries(config);
+        const mappedEntries = new Map(configEntries);
+        const ordered = [];
+
+        preferredOrder.forEach((sectionName) => {
+            if (mappedEntries.has(sectionName)) {
+                ordered.push([sectionName, mappedEntries.get(sectionName)]);
+                mappedEntries.delete(sectionName);
+            }
+        });
+
+        mappedEntries.forEach((values, sectionName) => {
+            ordered.push([sectionName, values]);
+        });
+
+        return ordered;
     }
 
     function createField(sectionName, key, value) {
@@ -244,11 +315,31 @@
         return wrapper;
     }
 
+    function createSectionToggle(sectionName, value) {
+        const key = SECTION_TOGGLE_FIELDS[sectionName];
+        const fieldId = `${sectionName}.${key}`;
+        const wrapper = document.createElement("div");
+        wrapper.className = "section-switch";
+
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.className = "form-check-input";
+        input.id = fieldId;
+        input.checked = String(value).toLowerCase() === "true";
+        input.dataset.section = sectionName;
+        input.dataset.key = key;
+        input.setAttribute("role", "switch");
+        input.setAttribute("aria-label", prettifyFieldName(sectionName, key));
+
+        wrapper.appendChild(input);
+        return wrapper;
+    }
+
     function renderConfig(config) {
         currentConfig = config;
         configGrid.innerHTML = "";
 
-        const sections = Object.entries(config);
+        const sections = getOrderedSections(config);
         let totalFields = 0;
 
         sections.forEach(([sectionName, values]) => {
@@ -258,19 +349,33 @@
             const body = document.createElement("div");
             body.className = "card-body";
 
+            const header = document.createElement("div");
+            header.className = "config-card-header";
+
             const title = document.createElement("h2");
             title.className = "card-title h4";
             title.textContent = prettifySectionName(sectionName);
 
-            body.append(title);
+            header.appendChild(title);
+
+            if (SECTION_TOGGLE_FIELDS[sectionName]) {
+                header.appendChild(createSectionToggle(sectionName, values[SECTION_TOGGLE_FIELDS[sectionName]] || "false"));
+            }
+
+            body.appendChild(header);
 
             const pairedFieldIds = new Set(PAIRED_FIELDS.flat());
             const renderedPairs = new Set();
+            const toggleKey = SECTION_TOGGLE_FIELDS[sectionName];
 
             Object.entries(values).forEach(([key, value]) => {
                 totalFields += 1;
                 const fieldId = `${sectionName}.${key}`;
                 const pair = PAIRED_FIELDS.find((items) => items.includes(fieldId));
+
+                if (toggleKey && key === toggleKey) {
+                    return;
+                }
 
                 if (pair) {
                     const pairKey = pair.join("|");
@@ -364,7 +469,8 @@
             item.className = "host-item";
 
             const summary = document.createElement("summary");
-            summary.innerHTML = `${host.label} <span>${host.id}</span>`;
+            const hostDisplayId = host.id === "host1" ? "Host 1" : host.id === "host2" ? "Host 2" : host.id;
+            summary.innerHTML = `${host.label} <span>${hostDisplayId}</span>`;
 
             const body = document.createElement("div");
             body.className = "host-body";

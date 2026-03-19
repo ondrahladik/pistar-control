@@ -77,6 +77,7 @@ Při ukládání se prázdné hodnoty u citlivých polí zachovávají z původn
 - `api.token`
 - `telegram.bot_token`
 - `telegram.chat_id`
+- `mqtt.password`
 
 ### `GET /api/hosts/<name>`
 
@@ -103,3 +104,4 @@ Payload:
 - API podporuje `OPTIONS` na `/api/<path>` kvůli CORS.
 - Server povoluje `GET`, `POST` a `OPTIONS`.
 - Webové UI může používat stejné endpointy i bez Bearer hlavičky, pokud je uživatel přihlášený v session.
+- MQTT nastavení se ukládá ve stejné sekci `config` přes `GET /api/config` a `POST /api/config`.

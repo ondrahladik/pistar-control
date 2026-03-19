@@ -12,10 +12,23 @@
         gap: 18px;
     }
 
+    .doc-section + .doc-section {
+        margin-top: 22px;
+    }
+
+    .section-heading {
+        margin-bottom: 12px;
+    }
+
+    .section-heading h2 {
+        margin: 6px 0 0;
+    }
+
     .endpoint-list {
         display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 18px;
-        margin-top: 18px;
+        margin-top: 12px;
     }
 
     .method {
@@ -52,153 +65,132 @@
         .grid {
             grid-template-columns: 1fr;
         }
+
+        .endpoint-list {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
-<section class="grid">
-    <article class="panel">
-        <h2>Autentizace</h2>
-        <p>Chráněné endpointy kontrolují HTTP hlavičku <code>Authorization</code> ve tvaru Bearer tokenu.</p>
-        <pre>Authorization: Bearer &lt;api-token&gt;</pre>
-        <ul>
-            <li><code>/api/network</code> vyžaduje autorizaci</li>
-            <li><code>/api/networks</code> vyžaduje autorizaci</li>
-            <li><code>/api/status</code> vyžaduje autorizaci</li>
-            <li><code>/api/config</code> vyžaduje autorizaci</li>
-            <li><code>/api/hosts/&lt;name&gt;</code> vyžaduje autorizaci</li>
-        </ul>
-    </article>
+<section class="doc-section">
+    <div class="section-heading">
+        <span class="eyebrow">API</span>
+        <h2>REST API</h2>
+    </div>
 
-    <article class="panel">
-        <h2>Základní odpovědi</h2>
-        <ul>
-            <li>200: požadavek proběhl úspěšně</li>
-            <li>400: chybí nebo je špatný payload</li>
-            <li>401: neplatný nebo chybějící token</li>
-            <li>404: neexistující síť nebo endpoint</li>
-            <li>500: server nedokázal provést změnu</li>
-        </ul>
-    </article>
+    <section class="grid">
+        <article class="panel">
+            <h2>Autentizace</h2>
+            <p>Chráněné endpointy kontrolují HTTP hlavičku <code>Authorization</code> ve tvaru Bearer tokenu.</p>
+            <pre>Authorization: Bearer &lt;api-token&gt;</pre>
+            <ul>
+                <li><code>/api/network</code> vyžaduje autorizaci</li>
+                <li><code>/api/networks</code> vyžaduje autorizaci</li>
+                <li><code>/api/status</code> vyžaduje autorizaci</li>
+                <li><code>/api/config</code> vyžaduje autorizaci</li>
+                <li><code>/api/hosts/&lt;name&gt;</code> vyžaduje autorizaci</li>
+            </ul>
+        </article>
+
+        <article class="panel">
+            <h2>Endpointy</h2>
+            <ul>
+                <li><code>GET /api/status</code>: aktuální síť, alias, aktivita a čas</li>
+                <li><code>GET /api/networks</code>: seznam sítí a aliasů</li>
+                <li><code>POST /api/network</code>: přepnutí aktivní sítě</li>
+                <li><code>GET/POST /api/config</code>: čtení a uložení <code>app.ini</code></li>
+                <li><code>GET/POST /api/hosts/&lt;name&gt;</code>: práce s host soubory</li>
+            </ul>
+        </article>
+    </section>
+
+    <section class="endpoint-list">
+        <article class="panel">
+            <h2>Typické odpovědi</h2>
+            <ul>
+                <li><code>200</code>: požadavek proběhl úspěšně</li>
+                <li><code>400</code>: chybí nebo je neplatný payload</li>
+                <li><code>401</code>: neplatný nebo chybějící token</li>
+                <li><code>404</code>: neexistující síť nebo endpoint</li>
+                <li><code>500</code>: server nedokázal provést změnu</li>
+            </ul>
+        </article>
+
+        <article class="panel">
+            <h2>Status payload</h2>
+            <pre>{
+  "current_network": "host1",
+  "current_network_label": "ODS",
+  "active_call": {
+    "callsign": "OK1ABC",
+    "talkgroup": "230"
+  },
+  "last_update_at": "18:42:11"
+}</pre>
+        </article>
+    </section>
 </section>
 
-<section class="endpoint-list">
-    <article class="panel">
-        <span class="method">PAGE</span>
-        <span class="path">/config</span>
-        <p>Webová stránka pro správu obsahu <code>config/app.ini</code> a jednotlivých host souborů. Po načtení si bere data z <code>/api/config</code>, <code>/api/networks</code> a <code>/api/hosts/&lt;name&gt;</code>.</p>
-        <ul>
-            <li>umožňuje upravit sekce <code>api</code>, <code>aliases</code> a <code>telegram</code></li>
-            <li>umožňuje samostatně načítat a ukládat obsah host konfigurací</li>
-            <li>pro uložení změn používá <code>POST /api/config</code> a <code>POST /api/hosts/&lt;name&gt;</code></li>
-        </ul>
-    </article>
+<section class="doc-section">
+    <div class="section-heading">
+        <span class="eyebrow">MQTT</span>
+        <h2>Publikace stavu</h2>
+    </div>
 
-    <article class="panel">
-        <span class="method">GET</span>
-        <span class="path">/api/networks</span>
-        <p>Vrátí seznam dostupných sítí podle konfigurace na serveru včetně aliasů pro zobrazení ve webu.</p>
-        <pre>{
-  "networks": [
-    {
-      "id": "host1",
-      "label": "Síť 1"
-    },
-    {
-      "id": "host2",
-      "label": "Síť 2"
-    }
-  ]
+    <section class="grid">
+        <article class="panel">
+            <h2>JSON payload</h2>
+            <p>Pokud je MQTT zapnuté a je vyplněný broker i topic, aplikace publikuje aktuální stav jako JSON.</p>
+            <pre>{
+  "network": "BM",
+  "callsign": "OK1ABC",
+  "talkgroup": "230",
+  "time": "18:42:11"
 }</pre>
-    </article>
+            <ul>
+                <li>publikaci zapíná přepínač <code>mqtt.enabled</code></li>
+                <li>nastavení je v sekci <code>mqtt</code> v <code>config/app.ini</code></li>
+                <li>pole <code>username</code> a <code>password</code> jsou volitelná</li>
+                <li>pole <code>network</code> obsahuje alias aktivní sítě</li>
+            </ul>
+        </article>
 
-    <article class="panel">
-        <span class="method">GET</span>
-        <span class="path">/api/status</span>
-        <p>Vrátí aktuálně přepnuté aktivní připojení včetně aliasu pro UI.</p>
-        <pre>{
-  "current_network": "host1",
-  "current_network_label": "Síť 1"
-}</pre>
-    </article>
+        <article class="panel">
+            <h2>Nastavení</h2>
+            <ul>
+                <li>přepínač <code>mqtt.enabled</code> zapíná nebo vypíná publikaci</li>
+                <li>broker používá <code>server</code>, <code>port</code> a volitelně <code>username</code>, <code>password</code></li>
+                <li>odesílá se po přepnutí sítě, změně aktivity a po ukončení hovoru</li>
+            </ul>
+        </article>
+    </section>
+</section>
 
-    <article class="panel">
-        <span class="method">POST</span>
-        <span class="path">/api/network</span>
-        <p>Přepne aktivní síť podle jména v JSON payloadu.</p>
-        <pre>{
-  "network": "host1"
-}</pre>
-        <pre>{
-  "success": true,
-  "current_network": "host1"
-}</pre>
-    </article>
+<section class="doc-section">
+    <div class="section-heading">
+        <span class="eyebrow">Telegram</span>
+        <h2>Ovládání bota</h2>
+    </div>
 
-    <article class="panel">
-        <span class="method">GET</span>
-        <span class="path">/api/config</span>
-        <p>Načte aktuální obsah <code>config/app.ini</code> po sekcích a klíčích.</p>
-        <pre>{
-  "config": {
-    "api": {
-      "port": "5000",
-      "token": "&lt;api-token&gt;"
-    }
-  }
-}</pre>
-    </article>
+    <section class="grid">
+        <article class="panel">
+            <h2>Dashboard</h2>
+            <p>Telegram bot udržuje jednu průběžně aktualizovanou zprávu s aktivní sítí, volačkou, talkgroup a časem poslední změny.</p>
+            <ul>
+                <li>zapíná se přes <code>telegram.enabled</code></li>
+                <li>vyžaduje <code>bot_token</code> a <code>chat_id</code></li>
+                <li><code>thread_id</code> je volitelné pro topics</li>
+            </ul>
+        </article>
 
-    <article class="panel">
-        <span class="method">POST</span>
-        <span class="path">/api/config</span>
-        <p>Uloží nový obsah konfigurace a vrátí finální podobu souboru.</p>
-        <pre>{
-  "config": {
-    "api": {
-      "port": "5000",
-      "token": "&lt;api-token&gt;"
-    }
-  }
-}</pre>
-        <pre>{
-  "success": true,
-  "config": {
-    "api": {
-      "port": "5000",
-      "token": "&lt;api-token&gt;"
-    }
-  }
-}</pre>
-    </article>
-
-    <article class="panel">
-        <span class="method">GET</span>
-        <span class="path">/api/hosts/&lt;name&gt;</span>
-        <p>Načte obsah konkrétní host konfigurace podle jejího identifikátoru.</p>
-        <pre>{
-  "host": {
-    "id": "host1",
-    "label": "Síť 1",
-    "content": "..." 
-  }
-}</pre>
-    </article>
-
-    <article class="panel">
-        <span class="method">POST</span>
-        <span class="path">/api/hosts/&lt;name&gt;</span>
-        <p>Uloží nový obsah konkrétní host konfigurace a vrátí uložená data.</p>
-        <pre>{
-  "content": "..." 
-}</pre>
-        <pre>{
-  "success": true,
-  "host": {
-    "id": "host1",
-    "label": "Síť 1",
-    "content": "..."
-  }
-}</pre>
-    </article>
+        <article class="panel">
+            <h2>Ovládání</h2>
+            <ul>
+                <li>přepínání funguje přes inline tlačítka i aliasové příkazy</li>
+                <li>aliasy se odvozují z názvů sítí v sekci <code>aliases</code></li>
+                <li>po změně stavu se dashboard automaticky obnoví</li>
+            </ul>
+        </article>
+    </section>
 </section>
 {% endblock %}

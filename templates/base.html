@@ -219,6 +219,7 @@
                 <a href="/" class="{% if active_page == 'home' %}is-active{% endif %}">Domů</a>
                 <a href="/config" class="{% if active_page == 'config' %}is-active{% endif %}">Konfigurace</a>
                 <a href="/docs" class="{% if active_page == 'docs' %}is-active{% endif %}">Dokumentace</a>
+                <a href="#" id="piStarLink" target="_blank" rel="noopener noreferrer">Pi-Star</a>
                 <form method="post" action="/auth/logout">
                     <button type="submit">Odhlásit se</button>
                 </form>
@@ -227,6 +228,14 @@
         {% endif %}
         {% block content %}{% endblock %}
     </main>
+    {% if active_page != "login" %}
+    <script>
+        const piStarLink = document.getElementById("piStarLink");
+        if (piStarLink) {
+            piStarLink.href = `${window.location.protocol}//${window.location.hostname}`;
+        }
+    </script>
+    {% endif %}
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

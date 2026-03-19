@@ -6,6 +6,7 @@ Nad jedním běžícím hotspotem staví tři vrstvy ovládání:
 - webové rozhraní pro přehled a správu konfigurace
 - REST API pro integrace a vzdálené ovládání
 - Telegram bota pro rychlé přepínání sítí
+- MQTT publikaci aktuálního stavu do externích systémů
 
 ## Co projekt umí
 
@@ -16,6 +17,7 @@ Nad jedním běžícím hotspotem staví tři vrstvy ovládání:
 - upravovat `config/app.ini` z webu nebo přes API
 - upravovat jednotlivé host soubory samostatně
 - přepínat profily i přes Telegram příkazy a tlačítka
+- publikovat aktuální síť, volačku, talkgroup a čas do MQTT topicu jako JSON
 
 ## Dokumentace
 
@@ -24,3 +26,4 @@ Podrobnější popis najdeš v [docs/readme.md](docs/readme.md):
 - [REST API](docs/api.md)
 - [Webové rozhraní](docs/web.md)
 - [Telegram bot](docs/telegram.md)
+- [MQTT](docs/mqtt.md)

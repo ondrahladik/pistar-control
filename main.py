@@ -4,6 +4,7 @@ from api.http import create_app
 from core.app_logging import configure_logging, get_logger
 from core.config import get_api_port, load_config
 from core.log_parser import LogParserService
+from core.mqtt_service import MqttPublisherService
 from core.state import get_state_snapshot, init_state, update_state
 from core.switcher import MMDVMHOST_PATH
 from core.telegram_bot import TelegramBotService
@@ -29,6 +30,9 @@ def main() -> None:
 
     telegram_service = TelegramBotService(config_store)
     telegram_service.start()
+
+    mqtt_service = MqttPublisherService(config_store)
+    mqtt_service.start()
 
     log_parser = LogParserService(config_store)
     log_parser.start()

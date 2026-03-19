@@ -26,12 +26,14 @@ Domovská stránka funguje jako dashboard:
 
 Konfigurační stránka spravuje dvě vrstvy dat:
 
-- `config/app.ini` po sekcích `api`, `aliases` a `telegram`
+- `config/app.ini` po sekcích `api`, `aliases`, `telegram` a `mqtt`
 - jednotlivé host soubory načtené přes `/api/hosts/<name>`
 
 Uživatel může:
 
 - upravit port, token a Telegram nastavení
+- zapnout nebo vypnout MQTT publikaci samostatným přepínačem
+- nastavit MQTT broker, port, přihlašovací údaje a topic
 - měnit aliasy profilů
 - otevřít každý host soubor zvlášť a uložit ho samostatně
 

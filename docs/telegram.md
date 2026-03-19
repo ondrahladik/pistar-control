@@ -33,3 +33,4 @@ Normalizace odstraní diakritiku a speciální znaky, takže z lidského názvu 
 - bot běží na pozadí ve vlastním vlákně
 - dashboard se obnoví po změně stavu i po přepnutí profilu
 - tlačítka i příkazy ve výsledku volají interní API pro přepnutí sítě
+- změny stavu mohou současně spouštět i další integrace, například MQTT publikaci

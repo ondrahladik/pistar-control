@@ -274,7 +274,9 @@
     const currentConfigName = document.getElementById("currentConfigName");
     const configCallsign = document.getElementById("configCallsign");
     const configId = document.getElementById("configId");
-    let refreshTimer = null;
+    let statusEventSource = null;
+    let fallbackRefreshTimer = null;
+    const STATUS_REFRESH_INTERVAL_MS = 1000;
 
     function setStatus(message, kind = "") {
         statusMessage.textContent = message;
@@ -292,6 +294,16 @@
         return payload;
     }
 
+    function getNetworkDisplayId(networkId) {
+        if (networkId === "host1") {
+            return "Host 1";
+        }
+        if (networkId === "host2") {
+            return "Host 2";
+        }
+        return networkId || "---";
+    }
+
     function renderNetworkButtons(networks, activeNetwork) {
         networkButtons.innerHTML = "";
 
@@ -307,7 +319,9 @@
         networks.forEach((network) => {
             const button = document.createElement("button");
             button.type = "button";
-            button.innerHTML = `${network.label}<small>${network.id}</small>`;
+            const displayId = getNetworkDisplayId(network.id);
+            button.dataset.networkId = network.id;
+            button.innerHTML = `${network.label}<small>${displayId}</small>`;
             if (network.id === activeNetwork) {
                 button.classList.add("is-active");
             }
@@ -331,9 +345,21 @@
 
     function renderCurrentConfigSettings(statusPayload) {
         const settings = statusPayload.current_network_settings || {};
-        currentConfigName.textContent = statusPayload.current_network || "---";
+        currentConfigName.textContent = "";
         configCallsign.textContent = settings.callsign || "---";
         configId.textContent = settings.id || "---";
+    }
+
+    function updateActiveNetworkButton(activeNetwork) {
+        networkButtons.querySelectorAll("button").forEach((button) => {
+            button.classList.toggle("is-active", button.dataset.networkId === activeNetwork);
+        });
+    }
+
+    function applyStatusPayload(statusPayload) {
+        renderRealtimeStatus(statusPayload);
+        renderCurrentConfigSettings(statusPayload);
+        updateActiveNetworkButton(statusPayload.current_network);
     }
 
     async function loadHomeData() {
@@ -345,9 +371,9 @@
                 apiRequest("/api/networks")
             ]);
 
-            renderRealtimeStatus(statusPayload);
-            renderCurrentConfigSettings(statusPayload);
             renderNetworkButtons(networksPayload.networks || [], statusPayload.current_network);
+            applyStatusPayload(statusPayload);
+            startStatusStream();
             setStatus("Připraveno", "success");
         } catch (error) {
             if (error.message === "Unauthorized") {
@@ -358,11 +384,54 @@
         }
     }
 
-    async function refreshStatusOnly() {
+    async function refreshStatusFallback() {
         try {
             const statusPayload = await apiRequest("/api/status");
-            renderRealtimeStatus(statusPayload);
-            renderCurrentConfigSettings(statusPayload);
+            applyStatusPayload(statusPayload);
+            const networksPayload = await apiRequest("/api/networks");
+            renderNetworkButtons(networksPayload.networks || [], statusPayload.current_network);
+        } catch (error) {
+            if (error.message === "Unauthorized") {
+                window.location.href = "/login";
+            }
+        }
+    }
+
+    function ensureFallbackPolling() {
+        if (fallbackRefreshTimer) {
+            return;
+        }
+        fallbackRefreshTimer = window.setInterval(refreshStatusFallback, STATUS_REFRESH_INTERVAL_MS);
+    }
+
+    function startStatusStream() {
+        ensureFallbackPolling();
+
+        if (typeof EventSource === "undefined") {
+            return;
+        }
+
+        if (statusEventSource) {
+            statusEventSource.close();
+        }
+
+        statusEventSource = new EventSource("/api/status/stream");
+        statusEventSource.addEventListener("status", (event) => {
+            const statusPayload = JSON.parse(event.data);
+            applyStatusPayload(statusPayload);
+            refreshNetworks(statusPayload.current_network);
+        });
+        statusEventSource.onerror = () => {
+            statusEventSource?.close();
+            ensureFallbackPolling();
+            window.setTimeout(startStatusStream, 1000);
+        };
+    }
+
+    async function refreshNetworks(activeNetwork) {
+        try {
+            const networksPayload = await apiRequest("/api/networks");
+            renderNetworkButtons(networksPayload.networks || [], activeNetwork);
         } catch (error) {
             if (error.message === "Unauthorized") {
                 window.location.href = "/login";
@@ -394,6 +463,5 @@
     }
 
     loadHomeData();
-    refreshTimer = window.setInterval(refreshStatusOnly, 2000);
 </script>
 {% endblock %}
