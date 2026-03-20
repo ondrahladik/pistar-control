@@ -96,8 +96,12 @@ if [ -f /etc/pistar-release ] || command -v pistar-update &>/dev/null; then
         sed -i 's|http://deb\.debian\.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list || true
     fi
 
-    if [ -f /etc/apt/sources.list.d/raspi.list ]; then
-        sed -i 's|http://raspbian\.raspberrypi\.org/raspbian|http://archive.raspbian.org/raspbian|g' /etc/apt/sources.list.d/raspi.list || true
+    if [ -d /etc/apt/sources.list.d ]; then
+        for src_file in /etc/apt/sources.list.d/*.list; do
+            [ -f "$src_file" ] || continue
+            sed -i 's|http://raspbian\.raspberrypi\.org/raspbian|http://archive.raspbian.org/raspbian|g' "$src_file" || true
+            sed -i 's|http://archive\.raspberrypi\.org/debian|http://legacy.raspbian.org/debian|g' "$src_file" || true
+        done
     fi
 
     echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid
@@ -115,7 +119,9 @@ log_step 2 "Instalace systémových balíčků..."
 export DEBIAN_FRONTEND=noninteractive
 
 log_info "Aktualizace seznamu balíčků..."
-apt-get update -qq
+apt-get update -qq || {
+    log_info "apt update skončil s varováním - pokračuji v instalaci..."
+}
 
 log_info "Předkonfigurace iptables-persistent..."
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
