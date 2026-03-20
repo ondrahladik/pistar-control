@@ -1,0 +1,16 @@
+[Unit]
+Description=PiStar Control Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/pistar-control
+ExecStart=/usr/bin/python3 /opt/pistar-control/main.py
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
