@@ -19,6 +19,30 @@ Nad jedním běžícím hotspotem staví tři vrstvy ovládání:
 - přepínat profily i přes Telegram příkazy a tlačítka
 - publikovat aktuální síť, volačku, talkgroup a čas do MQTT topicu jako JSON
 
+## Automatická instalace
+
+Pro rychlé nasazení na Pi-Star můžeš použít připravené skripty pro instalaci, aktualizaci i odinstalaci. Skripty automaticky řeší běžné kroky jako přípravu prostředí, práci s repozitářem a obsluhu služby.
+
+Instalace:
+
+```bash
+curl -s https://dmrhub.eu/install.sh | sudo bash
+```
+
+Aktualizace:
+
+```bash
+curl -s https://dmrhub.eu/update.sh | sudo bash
+```
+
+Odinstalace:
+
+```bash
+curl -s https://dmrhub.eu/remove.sh | sudo bash
+```
+
+Instalace trvá přibližně 4 minuty.
+
 ## Dokumentace
 
 Podrobnější popis najdeš v [docs/readme.md](docs/readme.md):
