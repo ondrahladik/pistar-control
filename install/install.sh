@@ -91,18 +91,20 @@ if [ -f /etc/pistar-release ] || command -v pistar-update &>/dev/null; then
         log_ok "Filesystem přemountován jako read-write."
     fi
 
-    if [ -f /etc/apt/sources.list ]; then
-        sed -i 's|http://httpredir\.debian\.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list || true
-        sed -i 's|http://deb\.debian\.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list || true
-    fi
-
+    APT_SOURCES=()
+    [ -f /etc/apt/sources.list ] && APT_SOURCES+=(/etc/apt/sources.list)
     if [ -d /etc/apt/sources.list.d ]; then
-        for src_file in /etc/apt/sources.list.d/*.list; do
-            [ -f "$src_file" ] || continue
-            sed -i 's|http://raspbian\.raspberrypi\.org/raspbian|http://archive.raspbian.org/raspbian|g' "$src_file" || true
-            sed -i 's|http://archive\.raspberrypi\.org/debian|http://legacy.raspbian.org/debian|g' "$src_file" || true
+        for f in /etc/apt/sources.list.d/*.list; do
+            [ -f "$f" ] && APT_SOURCES+=("$f")
         done
     fi
+
+    for src_file in "${APT_SOURCES[@]}"; do
+        sed -i 's|https\?://httpredir\.debian\.org/debian|http://archive.debian.org/debian|g' "$src_file" || true
+        sed -i 's|https\?://deb\.debian\.org/debian|http://archive.debian.org/debian|g' "$src_file" || true
+        sed -i 's|https\?://raspbian\.raspberrypi\.org/raspbian|http://archive.raspbian.org/raspbian|g' "$src_file" || true
+        sed -i '/archive\.raspberrypi\.org\/debian/s/^[^#]/#&/' "$src_file" || true
+    done
 
     echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid
 
