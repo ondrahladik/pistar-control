@@ -91,6 +91,8 @@ if [ -f /etc/pistar-release ] || command -v pistar-update &>/dev/null; then
         log_ok "Filesystem přemountován jako read-write."
     fi
 
+    log_info "Opravuji Debian Buster repozitáře (EOL)..."
+
     APT_SOURCES=()
     [ -f /etc/apt/sources.list ] && APT_SOURCES+=(/etc/apt/sources.list)
     if [ -d /etc/apt/sources.list.d ]; then
@@ -102,8 +104,10 @@ if [ -f /etc/pistar-release ] || command -v pistar-update &>/dev/null; then
     for src_file in "${APT_SOURCES[@]}"; do
         sed -i 's|https\?://httpredir\.debian\.org/debian|http://archive.debian.org/debian|g' "$src_file" || true
         sed -i 's|https\?://deb\.debian\.org/debian|http://archive.debian.org/debian|g' "$src_file" || true
-        sed -i 's|https\?://raspbian\.raspberrypi\.org/raspbian|http://archive.raspbian.org/raspbian|g' "$src_file" || true
-        sed -i '/archive\.raspberrypi\.org\/debian/s/^[^#]/#&/' "$src_file" || true
+        sed -i 's|https\?://raspbian\.raspberrypi\.org/raspbian|http://legacy.raspbian.org/raspbian|g' "$src_file" || true
+        sed -i 's|https\?://archive\.raspbian\.org/raspbian|http://legacy.raspbian.org/raspbian|g' "$src_file" || true
+        sed -i 's|https\?://legacy\.raspbian\.org/debian|http://archive.raspberrypi.org/debian|g' "$src_file" || true
+        sed -i '/^#\(deb.*archive\.raspberrypi\.org\/debian\)/s/^#//' "$src_file" || true
     done
 
     echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid
@@ -122,7 +126,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 log_info "Aktualizace seznamu balíčků..."
 apt-get update -qq || {
-    log_info "apt update skončil s varováním - pokračuji v instalaci..."
+    log_info "apt update skončil s varováním – pokračuji v instalaci..."
 }
 
 log_info "Předkonfigurace iptables-persistent..."
