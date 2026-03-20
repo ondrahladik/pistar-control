@@ -234,7 +234,7 @@ log_step 4 "Příprava repozitáře v ${INSTALL_DIR}..."
 if [ -d "${INSTALL_DIR}/.git" ]; then
     log_info "Repozitář již existuje – stahuji aktualizace..."
     cd "${INSTALL_DIR}"
-    if git pull --ff-only 2>/dev/null; then
+    if git pull --ff-only --quiet > /dev/null 2>&1; then
         log_ok "Repozitář aktualizován."
     else
         log_info "${YELLOW}Varování:${NC} git pull selhal (lokální změny?) – pokračuji s aktuální verzí."
@@ -245,7 +245,7 @@ else
         rm -rf "${INSTALL_DIR}"
     fi
     log_info "Klonuji repozitář..."
-    git clone "${REPO_URL}" "${INSTALL_DIR}"
+    git clone --quiet "${REPO_URL}" "${INSTALL_DIR}" > /dev/null 2>&1
     log_ok "Repozitář naklonován do ${INSTALL_DIR}."
 fi
 
