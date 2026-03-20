@@ -22,6 +22,7 @@ SYSTEMD_SERVICE="/etc/systemd/system/${SERVICE_NAME}.service"
 REQUIREMENTS="${INSTALL_DIR}/install/requirements.txt"
 FIREWALL_PORT=5000
 IS_PISTAR=false
+RESTORE_RO=false
 
 # ---------------------------------------------------------------------------
 # Pomocné funkce
@@ -44,15 +45,59 @@ log_error() {
     echo -e "       ${RED}✗${NC} $1" >&2
 }
 
+remount_rw_path() {
+    local target=$1
+    if mountpoint -q "$target" 2>/dev/null; then
+        mount -o remount,rw "$target" 2>/dev/null || true
+    fi
+}
+
+remount_ro_path() {
+    local target=$1
+    if mountpoint -q "$target" 2>/dev/null; then
+        mount -o remount,ro "$target" 2>/dev/null || true
+    fi
+}
+
+ensure_writable_dir() {
+    local dir=$1
+    mkdir -p "$dir"
+    local probe="${dir}/.pistar-control-write-test"
+    if touch "$probe" 2>/dev/null; then
+        rm -f "$probe"
+        return 0
+    fi
+    return 1
+}
+
+restore_pistar_ro() {
+    if [ "$IS_PISTAR" != true ] || [ "$RESTORE_RO" != true ]; then
+        return
+    fi
+
+    if command -v rpi-ro &>/dev/null; then
+        log_info "Vracím Pi-Star filesystem do read-only režimu..."
+        rpi-ro || true
+    else
+        log_info "Vrácení filesystemu do read-only režimu..."
+        remount_ro_path /boot
+        remount_ro_path /var/cache/debconf
+        remount_ro_path /var/cache/apt
+        remount_ro_path /var/lib/apt
+        remount_ro_path /var/lib/dpkg
+        remount_ro_path /var/cache
+        remount_ro_path /var/lib
+        remount_ro_path /var
+        remount_ro_path /
+    fi
+}
+
 cleanup() {
     local exit_code=$?
     if [ $exit_code -ne 0 ]; then
         log_error "Instalace selhala s kódem: ${exit_code}"
-        if [ "$IS_PISTAR" = true ] && command -v rpi-ro &>/dev/null; then
-            log_info "Vracím Pi-Star filesystem do read-only režimu..."
-            rpi-ro || true
-        fi
     fi
+    restore_pistar_ro
     exit $exit_code
 }
 trap cleanup EXIT
@@ -78,6 +123,7 @@ log_step 1 "Detekce prostředí a příprava systému..."
 
 if [ -f /etc/pistar-release ] || command -v pistar-update &>/dev/null; then
     IS_PISTAR=true
+    RESTORE_RO=true
     log_info "Detekován systém Pi-Star."
 
     if command -v rpi-rw &>/dev/null; then
@@ -86,10 +132,29 @@ if [ -f /etc/pistar-release ] || command -v pistar-update &>/dev/null; then
         log_ok "Filesystem je v read-write režimu."
     else
         log_info "Příkaz rpi-rw nenalezen, zkouším mount..."
-        mount -o remount,rw / 2>/dev/null || true
-        mount -o remount,rw /boot 2>/dev/null || true
+        remount_rw_path /
+        remount_rw_path /boot
+        remount_rw_path /var
+        remount_rw_path /var/cache
+        remount_rw_path /var/cache/apt
+        remount_rw_path /var/cache/debconf
+        remount_rw_path /var/lib
+        remount_rw_path /var/lib/apt
+        remount_rw_path /var/lib/dpkg
         log_ok "Filesystem přemountován jako read-write."
     fi
+
+    log_info "Ověřuji zapisovatelnost systémových adresářů..."
+    for writable_dir in /var/cache/debconf /var/cache/apt /var/lib/apt /var/lib/dpkg; do
+        if ensure_writable_dir "$writable_dir"; then
+            :
+        else
+            log_error "Adresář ${writable_dir} je stále read-only."
+            log_error "Na tomto Pi-Star systému je potřeba nejprve přepnout celý systém do RW režimu."
+            exit 1
+        fi
+    done
+    log_ok "Systémové adresáře jsou zapisovatelné."
 
     log_info "Opravuji Debian Buster repozitáře (EOL)..."
 
@@ -265,12 +330,11 @@ fi
 # ---------------------------------------------------------------------------
 log_step 8 "Dokončení instalace..."
 
-if [ "$IS_PISTAR" = true ]; then
-    if command -v rpi-ro &>/dev/null; then
-        log_info "Vracím Pi-Star filesystem do read-only režimu..."
-        rpi-ro || true
-        log_ok "Filesystem přepnut do read-only režimu."
-    fi
+if [ "$IS_PISTAR" = true ] && [ "$RESTORE_RO" = true ]; then
+    log_info "Vrácení Pi-Star filesystemu do read-only režimu..."
+    restore_pistar_ro
+    log_ok "Filesystem přepnut do read-only režimu."
+    RESTORE_RO=false
 fi
 
 echo ""
