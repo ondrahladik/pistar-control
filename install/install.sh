@@ -90,6 +90,19 @@ if [ -f /etc/pistar-release ] || command -v pistar-update &>/dev/null; then
         mount -o remount,rw /boot 2>/dev/null || true
         log_ok "Filesystem přemountován jako read-write."
     fi
+
+    if [ -f /etc/apt/sources.list ]; then
+        sed -i 's|http://httpredir\.debian\.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list || true
+        sed -i 's|http://deb\.debian\.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list || true
+    fi
+
+    if [ -f /etc/apt/sources.list.d/raspi.list ]; then
+        sed -i 's|http://raspbian\.raspberrypi\.org/raspbian|http://archive.raspbian.org/raspbian|g' /etc/apt/sources.list.d/raspi.list || true
+    fi
+
+    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid
+
+    log_ok "Repozitáře opraveny."
 else
     log_info "Systém Pi-Star nebyl detekován – standardní Debian/Ubuntu instalace."
 fi
