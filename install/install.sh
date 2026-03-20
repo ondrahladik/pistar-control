@@ -281,6 +281,22 @@ elif [ -f "${CONFIG_DIR}/app.ini" ]; then
     log_info "Konfigurační soubor app.ini již existuje – ponechávám beze změny."
 fi
 
+if [ ! -f "${CONFIG_DIR}/host1" ] && [ -f "${CONFIG_DIR}/host1.sample" ]; then
+    log_info "Vytvářím výchozí konfiguraci z host1.sample..."
+    cp "${CONFIG_DIR}/host1.sample" "${CONFIG_DIR}/host1"
+    log_ok "Konfigurační soubor host1 vytvořen."
+elif [ -f "${CONFIG_DIR}/host1" ]; then
+    log_info "Konfigurační soubor host1 již existuje – ponechávám beze změny."
+fi
+
+if [ ! -f "${CONFIG_DIR}/host2" ] && [ -f "${CONFIG_DIR}/host2.sample" ]; then
+    log_info "Vytvářím výchozí konfiguraci z host2.sample..."
+    cp "${CONFIG_DIR}/host2.sample" "${CONFIG_DIR}/host2"
+    log_ok "Konfigurační soubor host2 vytvořen."
+elif [ -f "${CONFIG_DIR}/host2" ]; then
+    log_info "Konfigurační soubor host2 již existuje – ponechávám beze změny."
+fi
+
 # ---------------------------------------------------------------------------
 # [6/8] Instalace Python závislostí
 # ---------------------------------------------------------------------------
