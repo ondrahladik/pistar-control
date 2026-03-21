@@ -6,6 +6,10 @@ Po úspěšné instalaci a prvním spuštění aplikace je potřeba provést zá
 
 Pro základní funkčnost není potřeba nic měnit, ale doporučuji alespoň změnit výchozí API token pro lepší zabezpečení. Ten se používá pro autentizaci při přístupu k REST API a webovému rozhraní. Dále doporučuji si nastavit Aliasy pro dané profily, aby bylo jasné, který profil je který. Aliasy se zobrazují v přehledu a pomáhají rychle identifikovat aktivní profil. Například můžeš nastavit `Host 1` jako "BM" nebo "BrandMeister".
 
+## Pokročilé nastavení
+
+Pokročilé nastavení je více popsáno v jednotlivých stránkách dokumentace ([MQTT](mqtt.md) a [Telegram](telegram.md)).
+
 ## Host profily
 
 Jednou z klíčových funkcí aplikace je přepínání mezi dvěma host profily (`host1` a `host2`). Tyto profily jsou definovány v samostatných souborech, které se nachází ve složce `config/`. Díky tomu lze na jednom hotspotu snadno přepínat mezi dvěma různými nastaveními, například pro různé sítě. 
