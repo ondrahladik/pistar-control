@@ -2,8 +2,7 @@ import logging
 import sys
 
 
-LOG_FORMAT = "%(asctime)s | %(levelname)-7s | %(name)s | %(message)s"
-LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+LOG_FORMAT = "%(levelname)-7s | %(name)s | %(message)s"
 
 
 def configure_logging(level: int = logging.INFO) -> None:
@@ -16,7 +15,7 @@ def configure_logging(level: int = logging.INFO) -> None:
 
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(level)
-    handler.setFormatter(logging.Formatter(LOG_FORMAT, LOG_DATE_FORMAT))
+    handler.setFormatter(logging.Formatter(LOG_FORMAT))
     root_logger.addHandler(handler)
 
     logging.getLogger("werkzeug").setLevel(logging.ERROR)
