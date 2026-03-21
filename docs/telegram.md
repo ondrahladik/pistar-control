@@ -66,4 +66,7 @@ Nejjednodušší způsob je zavolat Telegram API `getUpdates` a vyhledat pole `c
 
 Poznámky:
 - V soukromém chatu je `chat.id` kladné číslo, v kanálech a supergroups má často formát `-100...`.
+- Bot jde využívat v přímých zprávách a v klasických skupinách; v těchto případech stačí zadat pouze `chat_id` (`thread_id` není nutné).
+- Pokud se jedná o skupinu, která používá vlákna, je potřeba zadat `thread_id`.
 - Pokud `getUpdates` nic nevrátí, pošli do bota zprávu nebo použij příkaz a zopakuj volání.
+- Když tato aplikace již beží, tak není možné použít `getUpdates`, protože bot je přihlášen k odběru aktualizací. V tomto případě je potřeba dočasně zastavit tuto aplikaci, získat `chat_id` a `thread_id` a poté aplikaci znovu spustit.
