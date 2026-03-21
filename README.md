@@ -13,11 +13,11 @@ Nad jedním běžícím hotspotem staví tři vrstvy ovládání:
 - přepínat mezi uloženými host profily, například `host1` a `host2`
 - po startu rozpoznat, který profil je právě aktivní
 - zobrazovat aktuální volací znak a talkgroup v reálném čase
-- zobrazit základní údaje z aktivního profilu, aktuálně `Callsign` a `Id` ze sekce `[General]`
+- zobrazit základní údaje z aktivního profilu, aktuálně `Callsign` a `Id`
 - upravovat `config/app.ini` z webu nebo přes API
 - upravovat jednotlivé host soubory samostatně
-- přepínat profily i přes Telegram příkazy a tlačítka
-- publikovat aktuální síť, volačku, talkgroup a čas do MQTT topicu jako JSON
+- přepínat profily i přes Telegram a MQTT
+- odesílat aktuální síť, volačku, talkgroup a čas do Telegramu a MQTT topicu jako JSON
 
 ## Automatická instalace
 
