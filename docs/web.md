@@ -17,7 +17,7 @@ Webové UI je postavené nad Flaskem a používá stejné `/api/*` endpointy jak
 
 Domovská stránka funguje jako dashboard:
 
-- každé 2 sekundy načítá `/api/status`
+- každou vteřinu se načítá `/api/status`
 - zobrazuje aktuální volací znak a talkgroup
 - ukazuje právě aktivní profil a základní hodnoty `Callsign` a `Id`
 - umožňuje jedním kliknutím přepnout profil přes `POST /api/network`
