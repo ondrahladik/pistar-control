@@ -13,7 +13,9 @@ Použij HTTP hlavičku:
 Authorization: Bearer <api-token>
 ```
 
-Bez platného tokenu server vrací `401 Unauthorized`.
+Bez platného tokenu server vrací `401 Unauthorized`.  
+  
+Vychozí token je `pistar`, ale doporučuji ho změnit pro lepší zabezpečení.
 
 ## Endpointy
 

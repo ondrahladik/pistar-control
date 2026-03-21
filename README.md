@@ -49,6 +49,8 @@ Instalace trvá přibližně 4 minuty. Manuální instalace je popsána v dokume
 - **Port aplikace**: `5000`
 - **URL aplikace**: http://pi-star.local:5000
 
+Token doporučuji změnit pro lepší zabezpečení.
+
 ## Dokumentace
 
 Podrobnější popis najdeš v [docs/readme.md](docs/readme.md):
