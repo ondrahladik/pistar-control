@@ -189,6 +189,12 @@ if [ "$IS_PISTAR" = true ] && [ "$RESTORE_RO" = true ]; then
     restore_pistar_ro
     log_ok "Filesystem přepnut do read-only režimu."
     RESTORE_RO=false
+    log_info "Restartuji službu pistar-control..."
+    if systemctl restart pistar-control; then
+        log_ok "Služba pistar-control byla restartována."
+    else
+        log_error "Restart služby pistar-control selhal."
+    fi
 fi
 
 echo ""
