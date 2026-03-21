@@ -4,6 +4,14 @@
 
 Telegram integrace funguje jako lehké dálkové ovládání nad stejným API, které používá webové rozhraní.
 
+## Konfigurace 
+
+Nastavení je v sekci `telegram` v `config/app.ini`:
+- `enabled`: zapíná nebo vypíná Telegram bota
+- `token`: HTTP API token pro přístup k Telegramu, získaný od BotFather
+- `chat_id`: ID chatu, kam bot posílá zprávy a odkud přijímá příkazy
+- `thread_id`: ID vlákna v rámci chatu, pokud používáš forum topics (je potřeba pro skupiny s vlákny, není potřeba pro soukromé zprávy a klasické skupiny)
+
 ## Co umí
 
 - vytvořit jeden dashboard message v definovaném chatu

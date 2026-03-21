@@ -3,7 +3,7 @@
 [Zpět na přehled](./readme.md)
 
 MQTT integrace publikuje aktuální stav aplikace a současně umí přijímat příkazy pro přepnutí sítě.
-Je vhodná pro Home Assistant, Node-RED nebo vlastní monitoring.
+Je vhodná pro Home Assistant, Node-RED nebo vlastní monitoring či vlastní IoT řešení.
 
 ## Konfigurace
 
@@ -45,14 +45,7 @@ Pokud právě není aktivní hovor, `callsign` a `talkgroup` mají hodnotu `null
 
 ## MQTT příkazy
 
-Na `topic_sub` můžeš posílat čistý textový příkaz bez `/`.
-
-Příklady:
-
-- `bm`
-- `ods`
-- `host1`
-- `host2`
+Na `topic_sub` můžeš posílat čistý textový příkaz bez `/`. Například `bm` pro přepnutí na profil s aliasem `BM` je to zkrácená verze názvu profilu pro pohodlné ovládání přes MQTT.
 
 Alias se vyhodnocuje stejně jako u Telegramu, tedy podle sekce `aliases`.
 Pokud máš například `host1 = BM`, stačí do MQTT poslat payload `bm`.
