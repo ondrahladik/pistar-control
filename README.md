@@ -41,7 +41,13 @@ Odinstalace:
 curl -s https://dmrhub.eu/remove.sh | sudo bash
 ```
 
-Instalace trvá přibližně 4 minuty.
+Instalace trvá přibližně 4 minuty. Manuální instalace je popsána v dokumentaci, ale doporučuji použít automatickou instalaci, pokud nejsi zkušený s Linuxem.
+
+## Výchozí nastavení
+
+- **API token**: `pistar`
+- **Port aplikace**: `5000`
+- **URL aplikace**: http://pi-star.local:5000
 
 ## Dokumentace
 

@@ -57,4 +57,10 @@ Sledovat logy služby můžeš pomocí:
 sudo journalctl -u pistar-control -f
 ```
 
+## Výchozí nastavení
+
+- **API token**: `pistar`
+- **Port aplikace**: `5000`
+- **URL aplikace**: http://pi-star.local:5000
+
 
