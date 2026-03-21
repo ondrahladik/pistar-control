@@ -30,7 +30,7 @@ Instalace trvá přibližně 4 minuty.
 > Manuální instalace je určena pro pokročilé uživatele, kteří chtějí přizpůsobit instalaci nebo nemohou použít automatické skripty.  
 > Doporučujeme použít automatickou instalaci, pokud nejsi zkušený s Linuxem.
 
-Pro manuální instalaci postupuj podle následujících kroků:
+Pro manuální instalaci postupuj přibližně podle následujících kroků:
 
 - Ověř, že běžíš jako root (sudo).
 - Přepni filesystem do read-write režimu (`rpi-rw`).
