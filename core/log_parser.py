@@ -13,7 +13,7 @@ from core.state import clear_active_call, set_active_call
 
 DEFAULT_LOG_GLOB = "/var/log/pi-star/MMDVM-*.log"
 VOICE_START_PATTERN = re.compile(
-    r"(?:received\s+)?(?:rf\s+|network\s+)?voice header from\s+(?P<callsign>[A-Z0-9/_-]+).*?\bto\s+\s+(?P<tg>[A-Z0-9/_-]+)",
+    r"(?:received\s+)?(?:rf\s+|network\s+)?voice header from\s+(?P<callsign>[A-Z0-9/_-]+).*?\bto\s+TG\s+(?P<tg>[A-Z0-9/_-]+)",
     re.IGNORECASE,
 )
 TG_PREFIX_PATTERN = re.compile(r"^[A-Za-z]+-")
