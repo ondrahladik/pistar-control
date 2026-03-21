@@ -56,6 +56,7 @@ Token doporučuji změnit pro lepší zabezpečení.
 Podrobnější popis najdeš v [docs/readme.md](docs/readme.md):
 
 - [Instalace](docs/install.md)
+- [Konfigurace](docs/config.md)
 - [REST API](docs/api.md)
 - [Webové rozhraní](docs/web.md)
 - [Telegram bot](docs/telegram.md)
