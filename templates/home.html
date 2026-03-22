@@ -310,7 +310,6 @@
     <section class="panel config-summary">
         <div class="panel-heading">
             <strong class="section-title">Moje nastavení</strong>
-            <small id="currentConfigName">---</small>
         </div>
         <div class="summary-grid">
             <div class="summary-row">
@@ -372,7 +371,6 @@
     const activeCallsign = document.getElementById("activeCallsign");
     const activeTalkgroup = document.getElementById("activeTalkgroup");
     const recentCallsList = document.getElementById("recentCallsList");
-    const currentConfigName = document.getElementById("currentConfigName");
     const configCallsign = document.getElementById("configCallsign");
     const configId = document.getElementById("configId");
     let statusEventSource = null;
@@ -474,7 +472,6 @@
 
     function renderCurrentConfigSettings(statusPayload) {
         const settings = statusPayload.current_network_settings || {};
-        currentConfigName.textContent = "";
         configCallsign.textContent = settings.callsign || "---";
         configId.textContent = settings.id || "---";
     }
