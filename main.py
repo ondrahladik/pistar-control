@@ -37,7 +37,11 @@ def main() -> None:
     log_parser = LogParserService(config_store)
     log_parser.start()
 
-    app = create_app(config_store, telegram_service=telegram_service)
+    app = create_app(
+        config_store,
+        telegram_service=telegram_service,
+        log_parser=log_parser,
+    )
     port = get_api_port()
     logger.info("Serving Flask app 'api.http'")
     logger.info("Debug mode: off")

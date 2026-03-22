@@ -6,11 +6,16 @@ from typing import Any, Callable, Dict, Optional
 from flask import Flask, Response, jsonify, redirect, render_template, request, session, stream_with_context, url_for
 
 from core.config import ConfigStore, get_api_token
+from core.log_parser import LogParserService
 from core.state import get_state_snapshot, get_state_version, wait_for_state_change_since
 from core.switcher import switch_network
 
 
-def create_app(config_store: ConfigStore, telegram_service: Optional[Any] = None) -> Flask:
+def create_app(
+    config_store: ConfigStore,
+    telegram_service: Optional[Any] = None,
+    log_parser: Optional[LogParserService] = None,
+) -> Flask:
     template_dir = Path(__file__).resolve().parents[1] / "templates"
     app = Flask(__name__, template_folder=str(template_dir))
     app.secret_key = "pistar-control-ui-session"
@@ -181,7 +186,18 @@ def create_app(config_store: ConfigStore, telegram_service: Optional[Any] = None
     @app.get("/api/status")
     @require_auth
     def get_status() -> Any:
-        return jsonify(_build_status_payload(config_store))
+        return jsonify(_build_status_payload(config_store, log_parser))
+
+    @app.get("/api/recent-calls")
+    @require_auth
+    def get_recent_calls() -> Any:
+        return jsonify({
+            "recent_calls": (
+                log_parser.get_recent_calls()
+                if log_parser is not None
+                else []
+            )
+        })
 
     @app.get("/api/status/stream")
     def stream_status() -> Any:
@@ -194,7 +210,7 @@ def create_app(config_store: ConfigStore, telegram_service: Optional[Any] = None
             while True:
                 current_version = get_state_version()
                 if current_version != last_seen_version:
-                    payload = _build_status_payload(config_store)
+                    payload = _build_status_payload(config_store, log_parser)
                     yield f"event: status\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
                     last_seen_version = current_version
                 last_seen_version = wait_for_state_change_since(last_seen_version, 15.0)
@@ -258,7 +274,10 @@ def create_app(config_store: ConfigStore, telegram_service: Optional[Any] = None
     return app
 
 
-def _build_status_payload(config_store: ConfigStore) -> Dict[str, Any]:
+def _build_status_payload(
+    config_store: ConfigStore,
+    log_parser: Optional[LogParserService] = None,
+) -> Dict[str, Any]:
     snapshot = get_state_snapshot()
     current_network = snapshot["current_network"]
     current_network_settings = (
@@ -276,6 +295,11 @@ def _build_status_payload(config_store: ConfigStore) -> Dict[str, Any]:
         "current_network_display_id": _format_network_display_id(current_network),
         "current_network_settings": current_network_settings,
         "active_call": snapshot["active_call"],
+        "recent_calls": (
+            log_parser.get_recent_calls()
+            if log_parser is not None
+            else []
+        ),
         "last_update_at": snapshot["last_update_at"],
     }
 

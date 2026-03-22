@@ -87,6 +87,7 @@
                 <li><code>/api/network</code> vyžaduje autorizaci</li>
                 <li><code>/api/networks</code> vyžaduje autorizaci</li>
                 <li><code>/api/status</code> vyžaduje autorizaci</li>
+                <li><code>/api/recent-calls</code> vyžaduje autorizaci</li>
                 <li><code>/api/config</code> vyžaduje autorizaci</li>
                 <li><code>/api/hosts/&lt;name&gt;</code> vyžaduje autorizaci</li>
             </ul>
@@ -96,6 +97,7 @@
             <h2>Endpointy</h2>
             <ul>
                 <li><code>GET /api/status</code>: aktuální síť, alias, aktivita a čas</li>
+                <li><code>GET /api/recent-calls</code>: posledních 10 dokončených volání z logu</li>
                 <li><code>GET /api/networks</code>: seznam sítí a aliasů</li>
                 <li><code>POST /api/network</code>: přepnutí aktivní sítě</li>
                 <li><code>GET/POST /api/config</code>: čtení a uložení <code>app.ini</code></li>
@@ -125,8 +127,20 @@
     "callsign": "OK1ABC",
     "talkgroup": "230"
   },
+  "recent_calls": [
+    {
+      "callsign": "OK1ABC",
+      "talkgroup": "230",
+      "time": "18:42:11"
+    }
+  ],
   "last_update_at": "18:42:11"
 }</pre>
+            <ul>
+                <li><code>recent_calls</code> obsahuje jen dokončená volání</li>
+                <li>stejná volačka je v historii vždy jen jednou, jen posledním spojením</li>
+                <li>pořadí je od nejnovějšího po nejstarší</li>
+            </ul>
         </article>
     </section>
 </section>
