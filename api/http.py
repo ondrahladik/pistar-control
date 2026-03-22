@@ -106,10 +106,6 @@ def create_app(
     def config_page() -> Any:
         return render_template("index.html", title="Konfigurace", active_page="config")
 
-    @app.route("/docs")
-    def docs_page() -> Any:
-        return render_template("docs.html", title="Dokumentace", active_page="docs")
-
     @app.post("/api/network")
     @require_auth
     def set_network() -> Any:

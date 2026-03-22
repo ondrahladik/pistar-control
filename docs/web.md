@@ -40,10 +40,6 @@ Uživatel může:
 - měnit aliasy profilů
 - otevřít každý host soubor zvlášť a uložit ho samostatně
 
-### `/docs`
-
-Interní stránka s rychlým přehledem endpointů, návratových stavů a vazby mezi UI a API.
-
 ## Bezpečnostní model
 
 - UI stránky nejsou veřejné bez přihlášení
