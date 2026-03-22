@@ -17,3 +17,6 @@ Jednou z klíčových funkcí aplikace je přepínání mezi dvěma host profily
 Při každém přepnutí dojde k přepsání hlavního host souboru (`/etc/mmdvmhost`) obsahem z vybraného profilu. To umožňuje rychlé a jednoduché přepínání bez nutnosti manuální editace host souboru.
 
 Na stránce `/config` můžeš upravovat oba host profily ručně. Lepší je však si po jednom oba profily připravit přímo v Pi-Staru, odzkoušet jejich funkčnost a poté si stáhnout z Pi-Staru zálohu (http://pi-star.local/admin/config_backup.php). Ve stažené záloze najdeš soubor `mmdvmhost`, ten otevři třeba v poznámkovém bloku a zkopíruj celý jeho obsah do příslušného host profilu na stránce `/config`.
+
+> [!IMPORTANT]  
+> Při použití Pi-Star Control, nelze měnit nastavení přímo v Pi-Staru, ale vždy skrze tuto aplikaci.
