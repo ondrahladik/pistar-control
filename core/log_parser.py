@@ -18,6 +18,14 @@ VOICE_START_PATTERN = re.compile(
     r"(?:received\s+)?(?:rf\s+|network\s+)?voice header from\s+(?P<callsign>[A-Z0-9/_-]+).*?\bto\s+TG\s+(?P<tg>[A-Z0-9/_-]+)",
     re.IGNORECASE,
 )
+VOICE_END_DETAILS_PATTERN = re.compile(
+    r"end of voice transmission"
+    r"(?:\s+from\s+(?P<callsign>[A-Z0-9/_-]+)\s+to\s+TG\s+(?P<tg>[A-Z0-9/_-]+))?"
+    r"(?:,\s*(?P<duration>\d+(?:\.\d+)?)\s+seconds?"
+    r",\s*(?P<loss>\d+(?:\.\d+)?)%\s+packet loss"
+    r",\s*BER:\s*(?P<ber>\d+(?:\.\d+)?)%?)?",
+    re.IGNORECASE,
+)
 TG_PREFIX_PATTERN = re.compile(r"^[A-Za-z]+-")
 LOG_TIME_PATTERN = re.compile(r"\b(?P<time>\d{2}:\d{2}:\d{2})\b")
 VOICE_END_PATTERN = re.compile(r"end of voice transmission", re.IGNORECASE)
@@ -153,7 +161,7 @@ class LogParserService:
 
         if VOICE_END_PATTERN.search(line):
             logger.info("Call ended")
-            self._finish_active_call()
+            self._finish_active_call(self._parse_completed_recent_call(line))
             clear_active_call()
 
     def _read_recent_calls_from_log(self, path: Path) -> Deque[Dict[str, Optional[str]]]:
@@ -169,8 +177,11 @@ class LogParserService:
                         active_recent_call = started_call
                         continue
 
-                    if VOICE_END_PATTERN.search(normalized_line) and active_recent_call is not None:
-                        self._append_unique_recent_call(recent_calls, active_recent_call)
+                    completed_call = self._parse_completed_recent_call(normalized_line)
+                    if VOICE_END_PATTERN.search(normalized_line):
+                        merged_call = self._merge_recent_call_details(active_recent_call, completed_call)
+                        if merged_call is not None:
+                            self._append_unique_recent_call(recent_calls, merged_call)
                         active_recent_call = None
         except OSError:
             logger.warning("Unable to preload recent calls from %s", path)
@@ -186,6 +197,25 @@ class LogParserService:
             "callsign": match.group("callsign").upper(),
             "talkgroup": TG_PREFIX_PATTERN.sub("", match.group("tg")),
             "time": self._extract_log_time(line),
+            "duration": None,
+            "loss": None,
+            "ber": None,
+        }
+
+    def _parse_completed_recent_call(self, line: str) -> Optional[Dict[str, Optional[str]]]:
+        match = VOICE_END_DETAILS_PATTERN.search(line)
+        if not match:
+            return None
+
+        callsign = match.group("callsign")
+        talkgroup = match.group("tg")
+        return {
+            "callsign": callsign.upper() if callsign else None,
+            "talkgroup": TG_PREFIX_PATTERN.sub("", talkgroup) if talkgroup else None,
+            "time": self._extract_log_time(line),
+            "duration": match.group("duration"),
+            "loss": match.group("loss"),
+            "ber": match.group("ber"),
         }
 
     def _extract_log_time(self, line: str) -> Optional[str]:
@@ -194,11 +224,12 @@ class LogParserService:
             return match.group("time")
         return None
 
-    def _finish_active_call(self) -> None:
-        if self._active_recent_call is None:
+    def _finish_active_call(self, completed_call: Optional[Dict[str, Optional[str]]] = None) -> None:
+        merged_call = self._merge_recent_call_details(self._active_recent_call, completed_call)
+        if merged_call is None:
             return
 
-        self._append_recent_call(self._active_recent_call)
+        self._append_recent_call(merged_call)
         self._active_recent_call = None
 
     def _append_recent_call(self, recent_call: Dict[str, Optional[str]]) -> None:
@@ -208,6 +239,27 @@ class LogParserService:
     def _replace_recent_calls(self, recent_calls: Deque[Dict[str, Optional[str]]]) -> None:
         with self._recent_calls_lock:
             self._recent_calls = deque(recent_calls, maxlen=RECENT_CALLS_LIMIT)
+
+    def _merge_recent_call_details(
+        self,
+        active_call: Optional[Dict[str, Optional[str]]],
+        completed_call: Optional[Dict[str, Optional[str]]],
+    ) -> Optional[Dict[str, Optional[str]]]:
+        if active_call is None and completed_call is None:
+            return None
+        if active_call is None:
+            return dict(completed_call) if completed_call is not None else None
+        if completed_call is None:
+            return dict(active_call)
+
+        merged_call = dict(active_call)
+        for key, value in completed_call.items():
+            if value is not None and not merged_call.get(key):
+                merged_call[key] = value
+                continue
+            if key in {"duration", "loss", "ber"} and value is not None:
+                merged_call[key] = value
+        return merged_call
 
     def _append_unique_recent_call(
         self,

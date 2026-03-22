@@ -102,7 +102,6 @@
     }
 
     .recent-calls-table thead th {
-        width: 33.333%;
         padding: 10px 14px;
         color: var(--muted);
         font-size: 0.78rem;
@@ -114,7 +113,6 @@
     }
 
     .recent-calls-table tbody td {
-        width: 33.333%;
         padding: 10px 14px;
         color: var(--text);
         text-align: center;
@@ -127,19 +125,30 @@
     }
 
     .recent-calls-table tbody td:nth-child(1) {
+        width: 16%;
         color: var(--muted);
         white-space: nowrap;
         font-variant-numeric: tabular-nums;
     }
 
     .recent-calls-table tbody td:nth-child(2) {
+        width: 24%;
         font-weight: 600;
         overflow-wrap: anywhere;
     }
 
     .recent-calls-table tbody td:nth-child(3) {
+        width: 15%;
         color: var(--accent);
         white-space: nowrap;
+    }
+
+    .recent-calls-table tbody td:nth-child(4),
+    .recent-calls-table tbody td:nth-child(5),
+    .recent-calls-table tbody td:nth-child(6) {
+        width: 15%;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
     }
 
     .recent-calls-empty {
@@ -339,11 +348,14 @@
                                 <th scope="col">Čas</th>
                                 <th scope="col">Volačka</th>
                                 <th scope="col">TG</th>
+                                <th scope="col">DUR</th>
+                                <th scope="col">LOSS</th>
+                                <th scope="col">BER</th>
                             </tr>
                         </thead>
                         <tbody id="recentCallsList">
                             <tr>
-                                <td class="recent-calls-empty" colspan="3">Načítám poslední volání...</td>
+                                <td class="recent-calls-empty" colspan="6">Načítám poslední volání...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -436,17 +448,24 @@
 
         if (!Array.isArray(recentCalls) || recentCalls.length === 0) {
             const emptyRow = document.createElement("tr");
-            emptyRow.innerHTML = '<td class="recent-calls-empty" colspan="3">Zatím tu nejsou žádná dokončená volání.</td>';
+            emptyRow.innerHTML = '<td class="recent-calls-empty" colspan="6">Zatím tu nejsou žádná dokončená volání.</td>';
             recentCallsList.appendChild(emptyRow);
             return;
         }
 
         recentCalls.forEach((recentCall) => {
             const row = document.createElement("tr");
+            const talkgroup = recentCall.talkgroup || "---";
+            const duration = recentCall.duration ? `${recentCall.duration}s` : "---";
+            const loss = recentCall.loss ? `${recentCall.loss}%` : "---";
+            const ber = recentCall.ber ? `${recentCall.ber}%` : "---";
             row.innerHTML = `
                 <td>${recentCall.time || "---"}</td>
                 <td>${recentCall.callsign || "---"}</td>
-                <td>${recentCall.talkgroup || "---"}</td>
+                <td>${talkgroup}</td>
+                <td>${duration}</td>
+                <td>${loss}</td>
+                <td>${ber}</td>
             `;
             recentCallsList.appendChild(row);
         });

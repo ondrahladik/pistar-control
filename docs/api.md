@@ -38,6 +38,9 @@ Typická odpověď obsahuje:
 - `callsign`
 - `talkgroup`
 - `time`
+- `duration`
+- `loss`
+- `ber`
 
 ### `GET /api/recent-calls`
 
@@ -51,7 +54,10 @@ Typická odpověď:
     {
       "callsign": "OK1ABC",
       "talkgroup": "230",
-      "time": "18:42:11"
+      "time": "18:42:11",
+      "duration": "1.2",
+      "loss": "0",
+      "ber": "0.0"
     }
   ]
 }

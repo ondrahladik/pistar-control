@@ -19,7 +19,7 @@ Domovská stránka funguje jako dashboard:
 
 - každou vteřinu se načítá `/api/status`
 - zobrazuje aktuální volací znak a talkgroup
-- pod aktuálními hodnotami ukazuje tabulku posledních 10 dokončených volání
+- pod aktuálními hodnotami ukazuje tabulku posledních 10 dokončených volání včetně TG, délky, packet loss a BER
 - do tabulky se volání zapíše až po ukončení hovoru a každá volačka je v ní jen jednou, vždy svým posledním spojením
 - ukazuje právě aktivní profil a základní hodnoty `Callsign` a `Id`
 - umožňuje jedním kliknutím přepnout profil přes `POST /api/network`
