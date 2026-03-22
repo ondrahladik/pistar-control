@@ -2,7 +2,7 @@
 
 [Zpět na přehled](./readme.md)
 
-HTTP API slouží pro čtení stavu aplikace, správu `app.ini` a úpravu host profilů.
+HTTP API slouží pro čtení stavu aplikace, historie posledních volání, správu `app.ini` a úpravu host profilů.
 Všechny `/api/*` endpointy jsou chráněné Bearer tokenem z `config/app.ini`.
 
 ## Autentizace
@@ -30,7 +30,32 @@ Typická odpověď obsahuje:
 - `current_network_settings.callsign`
 - `current_network_settings.id`
 - `active_call`
+- `recent_calls`
 - `last_update_at`
+
+`recent_calls` obsahuje maximálně 10 posledních dokončených volání, od nejnovějšího po nejstarší. Do historie se položka zapíše až po ukončení hovoru a každá volačka se v seznamu drží jen jednou, vždy jen svým posledním spojením. Každá položka má:
+
+- `callsign`
+- `talkgroup`
+- `time`
+
+### `GET /api/recent-calls`
+
+Vrátí stejnou historii posledních 10 dokončených volání i samostatně.
+
+Typická odpověď:
+
+```json
+{
+  "recent_calls": [
+    {
+      "callsign": "OK1ABC",
+      "talkgroup": "230",
+      "time": "18:42:11"
+    }
+  ]
+}
+```
 
 ### `GET /api/networks`
 
