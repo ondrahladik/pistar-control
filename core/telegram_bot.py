@@ -18,6 +18,10 @@ from core.state import (
 logger = get_logger("app.telegram")
 
 
+_EDIT_NOT_FOUND_MAX_RETRIES = 3
+_EDIT_NOT_FOUND_RETRY_DELAY = 3.0
+
+
 class TelegramBotService:
     def __init__(self, config_store: ConfigStore) -> None:
         self._config_store = config_store
@@ -29,6 +33,8 @@ class TelegramBotService:
         self._last_edit_attempt_at = 0.0
         self._last_readiness_state: Optional[str] = None
         self._last_seen_version = get_state_version()
+        self._edit_not_found_count = 0
+        self._edit_not_found_ts = 0.0
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -77,6 +83,10 @@ class TelegramBotService:
         snapshot = get_state_snapshot()
         message_id = snapshot.get("telegram_message_id")
         if isinstance(message_id, int):
+            if self._edit_not_found_count > 0:
+                elapsed = time.monotonic() - self._edit_not_found_ts
+                if elapsed < _EDIT_NOT_FOUND_RETRY_DELAY:
+                    return
             self._maybe_update_dashboard(telegram_config, force=False)
             return
 
@@ -276,14 +286,31 @@ class TelegramBotService:
             self._last_rendered_text = text
             self._last_rendered_markup = markup
             self._last_edit_attempt_at = now
+            self._edit_not_found_count = 0
         except TelegramApiError as exc:
             self._last_edit_attempt_at = now
             if "message is not modified" in str(exc).lower():
                 self._last_rendered_text = text
                 self._last_rendered_markup = markup
+                self._edit_not_found_count = 0
                 return
             if "message to edit not found" in str(exc).lower():
-                update_state(telegram_message_id=None)
+                self._edit_not_found_count += 1
+                self._edit_not_found_ts = time.monotonic()
+                if self._edit_not_found_count >= _EDIT_NOT_FOUND_MAX_RETRIES:
+                    logger.warning(
+                        "editMessageText: message %s not found after %d attempts, creating new",
+                        message_id, self._edit_not_found_count,
+                    )
+                    update_state(telegram_message_id=None)
+                    self._edit_not_found_count = 0
+                else:
+                    logger.info(
+                        "editMessageText: message %s not found, retry %d/%d in %.0fs",
+                        message_id, self._edit_not_found_count,
+                        _EDIT_NOT_FOUND_MAX_RETRIES, _EDIT_NOT_FOUND_RETRY_DELAY,
+                    )
+                return
             logger.warning("editMessageText failed: %s", exc)
 
     @staticmethod

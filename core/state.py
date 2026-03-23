@@ -1,4 +1,5 @@
 import json
+import os
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -163,10 +164,18 @@ def _save_locked() -> None:
         key: state.get(key)
         for key in _persistent_keys
     }
+    tmp_path = _state_path.with_suffix(".tmp")
     try:
-        _state_path.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        data = json.dumps(payload, ensure_ascii=False, indent=2)
+        fd = os.open(str(tmp_path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC)
+        try:
+            os.write(fd, data.encode("utf-8"))
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        os.replace(str(tmp_path), str(_state_path))
     except OSError:
-        return
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
