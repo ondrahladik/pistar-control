@@ -76,10 +76,21 @@
 
         .brand {
             display: inline-flex;
-            align-items: center;
+            flex-direction: column;
+            align-items: flex-start;
             font-weight: 700;
             letter-spacing: 0.08em;
             text-transform: uppercase;
+        }
+
+        .brand-info {
+            display: flex;
+            gap: 12px;
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-transform: none;
         }
 
         .nav-links {
@@ -221,8 +232,12 @@
         {% if active_page != "login" %}
         <nav class="nav">
             <div class="brand">
-                <span>Pi-Star Control</span>
-            </div>
+                    <span>Pi-Star Control</span>
+                    <div class="brand-info">
+                        <span id="configCallsign">---</span>
+                        <span id="configId">---</span>
+                    </div>
+                </div>
             <div class="nav-links">
                 <a href="/" class="{% if active_page == 'home' %}is-active{% endif %}">Domů</a>
                 <a href="/config" class="{% if active_page == 'config' %}is-active{% endif %}">Konfigurace</a>
