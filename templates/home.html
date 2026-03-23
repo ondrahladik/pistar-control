@@ -302,6 +302,10 @@
             <small id="statusMessage">Načítám dostupné konfigurace...</small>
         </div>
         <div class="network-buttons" id="networkButtons">
+            <button type="button" id="networkIdentity" disabled>
+                <span id="configCallsign">---</span>
+                <small id="configId">---</small>
+            </button>
             <button type="button" disabled>Načítám...</button>
         </div>
     </section>
@@ -384,7 +388,12 @@
     }
 
     function renderNetworkButtons(networks, activeNetwork) {
+        // keep the identity element (callsign + id) if present
+        const identityElement = networkButtons.querySelector('#networkIdentity');
         networkButtons.innerHTML = "";
+        if (identityElement) {
+            networkButtons.appendChild(identityElement);
+        }
 
         if (networks.length === 0) {
             const button = document.createElement("button");
