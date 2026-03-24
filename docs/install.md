@@ -1,5 +1,13 @@
 # Instalace
 
+K instalaci budeš potřebovat přístup k terminálu na svém Pi-Star zařízení, buď přes SSH klienta, nebo můžeš použít SSH terminál v prohlížeči přímo v Pi-Star webovém rozhraní.
+
+SSH terminál v Pi-Star webovém rozhraní se nachází v sekci `Configuration` -> `Expert` -> [`SSH Access`](http://pi-star.local/admin/expert/ssh_access.php). Pak se stačí přihlásit, kliknout do terminálu pravým myšítkem a vybrat, `Paste from browser` a otevře se okno pro zadání příkazu. Do něj vlož jeden z příkazů níže a klikni na `OK`, a pak ještě stiskni Enter.
+
+Výchozí uživatelské jméno a heslo pro Pi-Star či SSH:
+- **Jméno**: `pi-star`
+- **Heslo**: `raspberry`
+
 ## Automatická instalace
 
 Pro rychlé nasazení na Pi-Star můžeš použít připravené skripty pro instalaci, aktualizaci i odinstalaci. Skripty automaticky řeší běžné kroky jako přípravu prostředí, práci s repozitářem a obsluhu služby.
