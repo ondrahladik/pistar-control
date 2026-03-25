@@ -118,7 +118,11 @@
 
         .nav-links a.is-active {
             color: var(--text);
-            background: rgba(255, 255, 255, 0.05);
+            background: transparent;
+        }
+
+        .nav-links a.is-active:hover {
+            background: transparent;
         }
 
         .nav-links a.is-active::after {

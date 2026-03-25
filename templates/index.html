@@ -145,6 +145,22 @@
         gap: 14px;
     }
 
+    #configGrid > .config-card:first-child .card-body {
+        display: grid;
+        justify-items: center;
+    }
+
+    #configGrid > .config-card:first-child .config-card-header {
+        width: 100%;
+        justify-self: stretch;
+    }
+
+    #configGrid > .config-card:first-child .mb-3,
+    #configGrid > .config-card:first-child .form-check,
+    #configGrid > .config-card:first-child .field-pair {
+        width: min(520px, 100%);
+    }
+
     @media (max-width: 900px) {
         .config-grid {
             grid-template-columns: 1fr;
