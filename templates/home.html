@@ -205,13 +205,17 @@
 
     .network-buttons {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        grid-template-columns: 1fr 1fr;
         gap: 12px;
     }
 
     .network-buttons #networkIdentity {
         pointer-events: none;
         opacity: 0.9;
+    }
+
+    .network-buttons #networkIdentity {
+        grid-column: 1 / -1;
     }
 
     .config-summary {
@@ -298,8 +302,9 @@
             grid-template-columns: 1fr;
         }
 
-        .network-buttons #networkIdentity {
-            grid-column: 1 / -1;
+        .network-buttons
+        .network-buttons {
+            grid-template-columns: 1fr;
         }
     }
 </style>
