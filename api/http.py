@@ -17,7 +17,13 @@ def create_app(
     log_parser: Optional[LogParserService] = None,
 ) -> Flask:
     template_dir = Path(__file__).resolve().parents[1] / "templates"
-    app = Flask(__name__, template_folder=str(template_dir))
+    fav_dir = template_dir / "fav"
+    app = Flask(
+        __name__,
+        template_folder=str(template_dir),
+        static_folder=str(fav_dir),
+        static_url_path="/fav",
+    )
     app.secret_key = "pistar-control-ui-session"
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
