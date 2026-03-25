@@ -145,7 +145,11 @@
         gap: 14px;
     }
 
-    @media (max-width: 800px) {
+    @media (max-width: 700px) {
+        .field-pair {
+            grid-template-columns: 1fr;
+        }
+
         .config-grid {
             grid-template-columns: 1fr;
         }
@@ -166,12 +170,6 @@
             text-align: center;
         }
     }
-
-    @media (max-width: 700px) {
-        .field-pair {
-            grid-template-columns: 1fr;
-        }
-    }
 </style>
 
 <section class="config-shell">
@@ -181,12 +179,8 @@
                 <h1 class="config-title">Konfigurace serveru</h1>
             </div>
             <div class="config-intro-actions">
-                <a
-                    class="button secondary"
-                    href="https://github.com/ondrahladik/pistar-control/tree/main/docs"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
+                <a class="button secondary" href="https://github.com/ondrahladik/pistar-control/tree/main/docs"
+                    target="_blank" rel="noopener noreferrer">
                     Dokumentace
                 </a>
                 <button id="bottomSaveButton" class="button primary" type="button" disabled>Uložit</button>
