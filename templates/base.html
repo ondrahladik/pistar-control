@@ -1,17 +1,18 @@
 <!DOCTYPE html>
 <html lang="cs">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-        rel="stylesheet"
-    >
+    <link rel="icon" type="image/png" href="/fav/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/fav/favicon.svg" />
+    <link rel="shortcut icon" href="/fav/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/fav/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="pistar-control" />
+    <link rel="manifest" href="/fav/site.webmanifest" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     {% block extra_head %}{% endblock %}
     <style>
         :root {
@@ -252,17 +253,19 @@
         }
     </style>
 </head>
+
 <body>
     <main class="shell{% if active_page == 'login' %} login-shell{% endif %}">
         {% if active_page != "login" %}
         <nav class="nav">
             <div class="brand">
-                    <span>Pi-Star Control</span>
-                </div>
+                <span>Pi-Star Control</span>
+            </div>
             <div class="nav-links">
                 <a href="/" class="{% if active_page == 'home' %}is-active{% endif %}">Domů</a>
                 <a href="/config" class="{% if active_page == 'config' %}is-active{% endif %}">Konfigurace</a>
-                <a href="#" id="piStarLink" target="_blank" title="Otevřít Pi-Star" rel="noopener noreferrer">Pi-Star</a>
+                <a href="#" id="piStarLink" target="_blank" title="Otevřít Pi-Star"
+                    rel="noopener noreferrer">Pi-Star</a>
                 <form method="post" action="/auth/logout">
                     <button type="submit" title="Odhlásit se"><i class="bi bi-door-open"></i></button>
                 </form>
@@ -281,4 +284,5 @@
     {% endif %}
     {% block extra_scripts %}{% endblock %}
 </body>
+
 </html>
