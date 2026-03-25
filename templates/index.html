@@ -145,32 +145,25 @@
         gap: 14px;
     }
 
-    .config-intro-header {
-        display: grid;
-        justify-items: center;
-        justify-content: center;
-        text-align: center;
-        gap: 12px;
-    }
-
-    .config-intro-heading {
-        flex: initial;
-    }
-
-    .config-intro-actions {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 12px;
-    }
-
-    #status {
-        text-align: center;
-    }
-
     @media (max-width: 900px) {
         .config-grid {
             grid-template-columns: 1fr;
+        }
+
+        .config-intro-header {
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 12px;
+        }
+
+        .config-intro-actions {
+            justify-content: center;
+        }
+
+        #status {
+            text-align: center;
         }
     }
 
