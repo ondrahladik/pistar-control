@@ -33,10 +33,13 @@
         border: 1px solid rgba(255, 255, 255, 0.06);
         border-radius: 24px;
         background: rgba(11, 19, 33, 0.92);
+        height: 100%;
     }
 
-    .config-card.config-card-general {
-        grid-column: 2;
+    .config-card-stack {
+        display: grid;
+        gap: 20px;
+        height: 100%;
     }
 
     .config-card .card-body {
@@ -182,8 +185,8 @@
             grid-template-columns: 1fr;
         }
 
-        .config-card.config-card-general {
-            grid-column: auto;
+        .config-card-stack {
+            height: auto;
         }
 
         .config-intro-header {
@@ -412,80 +415,94 @@
         return wrapper;
     }
 
+    function createSectionCard(sectionName, values, config) {
+        const article = document.createElement("article");
+        article.className = "card config-card";
+
+        const body = document.createElement("div");
+        body.className = "card-body";
+
+        if (sectionName !== "general") {
+            const header = document.createElement("div");
+            header.className = "config-card-header";
+
+            const title = document.createElement("h2");
+            title.className = "card-title h4";
+            title.textContent = prettifySectionName(sectionName);
+
+            header.appendChild(title);
+
+            if (SECTION_TOGGLE_FIELDS[sectionName]) {
+                header.appendChild(createSectionToggle(sectionName, values[SECTION_TOGGLE_FIELDS[sectionName]] || "false"));
+            }
+
+            body.appendChild(header);
+        }
+
+        const pairedFieldIds = new Set(PAIRED_FIELDS.flat());
+        const renderedPairs = new Set();
+        const toggleKey = SECTION_TOGGLE_FIELDS[sectionName];
+
+        Object.entries(values).forEach(([key, value]) => {
+            const fieldId = `${sectionName}.${key}`;
+            const pair = PAIRED_FIELDS.find((items) => items.includes(fieldId));
+
+            if (toggleKey && key === toggleKey) {
+                return;
+            }
+
+            if (pair) {
+                const pairKey = pair.join("|");
+                if (renderedPairs.has(pairKey)) {
+                    return;
+                }
+                renderedPairs.add(pairKey);
+
+                const pairWrapper = document.createElement("div");
+                pairWrapper.className = "field-pair";
+
+                pair.forEach((pairedFieldId) => {
+                    const [pairedSection, pairedKey] = pairedFieldId.split(".");
+                    const pairedValue = config[pairedSection]?.[pairedKey] || "";
+                    pairWrapper.appendChild(createField(pairedSection, pairedKey, pairedValue));
+                });
+
+                body.appendChild(pairWrapper);
+                return;
+            }
+
+            if (!pairedFieldIds.has(fieldId)) {
+                body.appendChild(createField(sectionName, key, value));
+            }
+        });
+
+        article.appendChild(body);
+        return article;
+    }
+
     function renderConfig(config) {
         currentConfig = config;
         configGrid.innerHTML = "";
 
         const sections = getOrderedSections(config);
-        let totalFields = 0;
+        const skippedSections = new Set();
 
         sections.forEach(([sectionName, values]) => {
-            const article = document.createElement("article");
-            article.className = "card config-card";
-            if (sectionName === "general") {
-                article.classList.add("config-card-general");
+            if (skippedSections.has(sectionName)) {
+                return;
             }
 
-            const body = document.createElement("div");
-            body.className = "card-body";
-
-            if (sectionName !== "general") {
-                const header = document.createElement("div");
-                header.className = "config-card-header";
-
-                const title = document.createElement("h2");
-                title.className = "card-title h4";
-                title.textContent = prettifySectionName(sectionName);
-
-                header.appendChild(title);
-
-                if (SECTION_TOGGLE_FIELDS[sectionName]) {
-                    header.appendChild(createSectionToggle(sectionName, values[SECTION_TOGGLE_FIELDS[sectionName]] || "false"));
-                }
-
-                body.appendChild(header);
+            if (sectionName === "telegram" && config.general) {
+                const stack = document.createElement("div");
+                stack.className = "config-card-stack";
+                stack.appendChild(createSectionCard("telegram", values, config));
+                stack.appendChild(createSectionCard("general", config.general, config));
+                configGrid.appendChild(stack);
+                skippedSections.add("general");
+                return;
             }
 
-            const pairedFieldIds = new Set(PAIRED_FIELDS.flat());
-            const renderedPairs = new Set();
-            const toggleKey = SECTION_TOGGLE_FIELDS[sectionName];
-
-            Object.entries(values).forEach(([key, value]) => {
-                totalFields += 1;
-                const fieldId = `${sectionName}.${key}`;
-                const pair = PAIRED_FIELDS.find((items) => items.includes(fieldId));
-
-                if (toggleKey && key === toggleKey) {
-                    return;
-                }
-
-                if (pair) {
-                    const pairKey = pair.join("|");
-                    if (renderedPairs.has(pairKey)) {
-                        return;
-                    }
-                    renderedPairs.add(pairKey);
-
-                    const pairWrapper = document.createElement("div");
-                    pairWrapper.className = "field-pair";
-
-                    pair.forEach((pairedFieldId) => {
-                        const [pairedSection, pairedKey] = pairedFieldId.split(".");
-                        const pairedValue = config[pairedSection]?.[pairedKey] || "";
-                        pairWrapper.appendChild(createField(pairedSection, pairedKey, pairedValue));
-                    });
-
-                    body.appendChild(pairWrapper);
-                    return;
-                }
-
-                if (!pairedFieldIds.has(fieldId)) {
-                    body.appendChild(createField(sectionName, key, value));
-                }
-            });
-
-            article.appendChild(body);
-            configGrid.appendChild(article);
+            configGrid.appendChild(createSectionCard(sectionName, values, config));
         });
 
         bottomSaveButton.disabled = sections.length === 0;
