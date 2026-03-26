@@ -10,6 +10,7 @@ from typing import Deque, Dict, List, Optional
 from core.app_logging import get_logger
 from core.config import ConfigStore
 from core.state import clear_active_call, set_active_call
+from core.timezone_utils import convert_local_time, get_system_timezone_name
 
 
 DEFAULT_LOG_GLOB = "/var/log/pi-star/MMDVM-*.log"
@@ -117,7 +118,7 @@ class LogParserService:
 
     def get_recent_calls(self) -> List[Dict[str, Optional[str]]]:
         with self._recent_calls_lock:
-            return [dict(call) for call in reversed(self._recent_calls)]
+            return [self._serialize_recent_call(call) for call in reversed(self._recent_calls)]
 
     def _close_current_file(self) -> None:
         if self._handle is not None:
@@ -196,7 +197,7 @@ class LogParserService:
         return {
             "callsign": match.group("callsign").upper(),
             "talkgroup": TG_PREFIX_PATTERN.sub("", match.group("tg")),
-            "time": self._extract_log_time(line),
+            "time_raw": self._extract_log_time(line),
             "duration": None,
             "loss": None,
             "ber": None,
@@ -212,7 +213,7 @@ class LogParserService:
         return {
             "callsign": callsign.upper() if callsign else None,
             "talkgroup": TG_PREFIX_PATTERN.sub("", talkgroup) if talkgroup else None,
-            "time": self._extract_log_time(line),
+            "time_raw": self._extract_log_time(line),
             "duration": match.group("duration"),
             "loss": match.group("loss"),
             "ber": match.group("ber"),
@@ -257,7 +258,7 @@ class LogParserService:
             if value is not None and not merged_call.get(key):
                 merged_call[key] = value
                 continue
-            if key in {"duration", "loss", "ber"} and value is not None:
+            if key in {"duration", "loss", "ber", "time_raw"} and value is not None:
                 merged_call[key] = value
         return merged_call
 
@@ -278,3 +279,16 @@ class LogParserService:
         deduplicated_calls.append(dict(recent_call))
         recent_calls.clear()
         recent_calls.extend(deduplicated_calls[-RECENT_CALLS_LIMIT:])
+
+    def _serialize_recent_call(self, recent_call: Dict[str, Optional[str]]) -> Dict[str, Optional[str]]:
+        serialized_call = {
+            key: value
+            for key, value in recent_call.items()
+            if key != "time_raw"
+        }
+        serialized_call["time"] = convert_local_time(
+            recent_call.get("time_raw"),
+            self._config_store.get_timezone_name(),
+            source_timezone_name=get_system_timezone_name(),
+        )
+        return serialized_call

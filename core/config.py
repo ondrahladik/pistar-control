@@ -7,6 +7,8 @@ import unicodedata
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from core.timezone_utils import get_effective_timezone_name
+
 
 class ConfigStore:
     def __init__(self, config_dir: str, app_config_path: str) -> None:
@@ -25,6 +27,9 @@ class ConfigStore:
         self._default_api_config = {
             "port": "5000",
             "token": "pistar",
+        }
+        self._default_general_config = {
+            "timezone": "system",
         }
         self._default_telegram_config = {
             "enabled": "false",
@@ -127,6 +132,15 @@ class ConfigStore:
         for key, value in self._default_api_config.items():
             if not self._app_config.has_option("api", key):
                 self._app_config.set("api", key, value)
+                changed = True
+
+        if not self._app_config.has_section("general"):
+            self._app_config.add_section("general")
+            changed = True
+
+        for key, value in self._default_general_config.items():
+            if not self._app_config.has_option("general", key):
+                self._app_config.set("general", key, value)
                 changed = True
 
         if not self._app_config.has_section("aliases"):
@@ -296,6 +310,20 @@ class ConfigStore:
                 for key, value in self._default_telegram_config.items()
             }
 
+    def get_general_config(self) -> Dict[str, str]:
+        with self._lock:
+            return {
+                key: self._app_config.get("general", key, fallback=value)
+                for key, value in self._default_general_config.items()
+            }
+
+    def get_timezone_name(self) -> str:
+        with self._lock:
+            return self._app_config.get("general", "timezone", fallback="system")
+
+    def get_effective_timezone_name(self) -> str:
+        return get_effective_timezone_name(self.get_timezone_name())
+
     def get_telegram_aliases(self) -> Dict[str, str]:
         aliases: Dict[str, str] = {}
         for network, alias in self.get_network_aliases().items():
@@ -365,6 +393,18 @@ def get_network_alias(name: str) -> str:
 
 def get_telegram_config() -> Dict[str, str]:
     return _get_default_store().get_telegram_config()
+
+
+def get_general_config() -> Dict[str, str]:
+    return _get_default_store().get_general_config()
+
+
+def get_timezone_name() -> str:
+    return _get_default_store().get_timezone_name()
+
+
+def get_effective_timezone_name() -> str:
+    return _get_default_store().get_effective_timezone_name()
 
 
 def get_telegram_aliases() -> Dict[str, str]:

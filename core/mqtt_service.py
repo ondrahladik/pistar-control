@@ -190,6 +190,7 @@ def _build_payload(snapshot: Dict[str, Any], config_store: ConfigStore) -> str:
         "callsign": callsign,
         "talkgroup": talkgroup,
         "time": snapshot.get("last_update_at"),
+        "timezone": config_store.get_effective_timezone_name(),
     }
     return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 

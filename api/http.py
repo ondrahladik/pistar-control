@@ -7,8 +7,9 @@ from flask import Flask, Response, jsonify, redirect, render_template, request, 
 
 from core.config import ConfigStore, get_api_token
 from core.log_parser import LogParserService
-from core.state import get_state_snapshot, get_state_version, wait_for_state_change_since
+from core.state import get_state_snapshot, get_state_version, update_state, wait_for_state_change_since
 from core.switcher import switch_network
+from core.timezone_utils import format_current_time
 
 
 def create_app(
@@ -263,6 +264,7 @@ def create_app(
             normalized_config[section.strip()] = normalized_values
 
         config_store.update_app_config(normalized_config)
+        update_state(last_update_at=format_current_time(config_store.get_timezone_name()))
         session_token = session.get("ui_token")
         if session_token is not None:
             session["ui_token"] = config_store.api_token
@@ -303,6 +305,7 @@ def _build_status_payload(
             else []
         ),
         "last_update_at": snapshot["last_update_at"],
+        "timezone": config_store.get_effective_timezone_name(),
     }
 
 

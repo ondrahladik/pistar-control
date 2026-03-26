@@ -246,6 +246,9 @@
     }
 
     function prettifySectionName(sectionName) {
+        if (sectionName === "general") {
+            return "Obecné";
+        }
         if (sectionName === "telegram") {
             return "Telegram";
         }
@@ -269,6 +272,7 @@
             "telegram.thread_id": "Thread ID",
             "api.port": "Port",
             "api.token": "API token",
+            "general.timezone": "Časové pásmo",
             "aliases.host1": "Host 1",
             "aliases.host2": "Host 2",
             "mqtt.server": "Server",
@@ -283,7 +287,7 @@
     }
 
     function getOrderedSections(config) {
-        const preferredOrder = ["aliases", "api", "mqtt", "telegram"];
+        const preferredOrder = ["general", "aliases", "api", "mqtt", "telegram"];
         const configEntries = Object.entries(config);
         const mappedEntries = new Map(configEntries);
         const ordered = [];
@@ -339,6 +343,13 @@
             wrapper.append(input, label);
         } else {
             wrapper.append(label, input);
+        }
+
+        if (fieldId === "general.timezone") {
+            const hint = document.createElement("div");
+            hint.className = "form-text";
+            hint.textContent = 'Použij IANA název, například "Europe/Prague", nebo ponech "system".';
+            wrapper.appendChild(hint);
         }
 
         return wrapper;

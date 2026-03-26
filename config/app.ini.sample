@@ -2,6 +2,9 @@
 port=5000
 token=pistar
 
+[general]
+timezone=system
+
 [aliases]
 host1=Síť 1
 host2=Síť 2

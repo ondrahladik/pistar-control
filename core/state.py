@@ -1,9 +1,11 @@
 import json
 import os
 import threading
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+from core.config import get_timezone_name
+from core.timezone_utils import format_current_time
 
 
 lock = threading.Lock()
@@ -122,7 +124,7 @@ def wait_for_state_change_since(last_seen_version: int, timeout: float) -> int:
 
 
 def _touch_locked() -> None:
-    state["last_update_at"] = datetime.now().strftime("%H:%M:%S")
+    state["last_update_at"] = format_current_time(get_timezone_name())
 
 
 def _snapshot_locked() -> Dict[str, Any]:
