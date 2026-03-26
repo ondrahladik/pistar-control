@@ -1,4 +1,4 @@
-# Pi-Star Control
+![Pi-Star Control](pistar-control.png)
 
 Pi-Star Control je jednoduchá aplikace pro správu MMDVM hotspotu na Pi-Staru.
 Nad jedním běžícím hotspotem staví tři vrstvy ovládání:
