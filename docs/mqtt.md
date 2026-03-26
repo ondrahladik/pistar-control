@@ -29,12 +29,14 @@ Každá zpráva se odesílá jako JSON:
   "network": "BM",
   "callsign": "OK1ABC",
   "talkgroup": "230",
-  "time": "18:42:11"
+  "time": "18:42:11",
+  "timezone": "Europe/Prague"
 }
 ```
 
 Pole `network` obsahuje alias aktivního profilu, ne interní název `host1` nebo `host2`.
 Pokud právě není aktivní hovor, `callsign` a `talkgroup` mají hodnotu `null`.
+Pole `time` je už převedené do časového pásma z `general.timezone`.
 
 ## Kdy se zprávy odesílají
 

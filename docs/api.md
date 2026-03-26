@@ -32,6 +32,7 @@ Typická odpověď obsahuje:
 - `active_call`
 - `recent_calls`
 - `last_update_at`
+- `timezone`
 
 `recent_calls` obsahuje maximálně 10 posledních dokončených volání, od nejnovějšího po nejstarší. Do historie se položka zapíše až po ukončení hovoru a každá volačka se v seznamu drží jen jednou, vždy jen svým posledním spojením. Každá položka má:
 
@@ -62,6 +63,8 @@ Typická odpověď:
   ]
 }
 ```
+
+Časy v `last_update_at` i `recent_calls[*].time` jsou vracené v časovém pásmu z `general.timezone`.
 
 ### `GET /api/networks`
 

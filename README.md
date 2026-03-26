@@ -17,6 +17,7 @@ Nad jedním běžícím hotspotem staví tři vrstvy ovládání:
 - upravovat `config/app.ini` z webu nebo přes API
 - upravovat jednotlivé host soubory samostatně
 - přepínat profily i přes Telegram a MQTT
+- používat nastavitelné časové pásmo napříč dashboardem, API, Telegramem i MQTT
 - odesílat aktuální síť, volačku, talkgroup a čas do Telegramu a MQTT topicu jako JSON
 
 ## Automatická instalace

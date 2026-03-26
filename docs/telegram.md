@@ -16,6 +16,7 @@ Nastavení je v sekci `telegram` v `config/app.ini`:
 
 - vytvořit jeden dashboard message v definovaném chatu
 - průběžně aktualizovat aktivní profil, volací znak, talkgroup a čas poslední změny
+- používat pro čas dashboardu stejné časové pásmo jako zbytek aplikace (`general.timezone`)
 - přepínat profily přes inline tlačítka
 - přepínat profily i pomocí aliasových příkazů, například `/sit1`
 - po zpracování příkazu původní zprávu smazat a udržovat chat čistý
