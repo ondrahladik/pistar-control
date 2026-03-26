@@ -29,8 +29,7 @@ Každá zpráva se odesílá jako JSON:
   "network": "BM",
   "callsign": "OK1ABC",
   "talkgroup": "230",
-  "time": "18:42:11",
-  "timezone": "Europe/Prague"
+  "time": "18:42:11"
 }
 ```
 
