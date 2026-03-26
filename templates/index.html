@@ -84,11 +84,16 @@
 
     .form-control,
     .form-select {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+    }
+
+    .form-select {
         appearance: none;
         -webkit-appearance: none;
         -moz-appearance: none;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
         background:
             linear-gradient(45deg, transparent 50%, rgba(155, 174, 208, 0.85) 50%),
             linear-gradient(135deg, rgba(155, 174, 208, 0.85) 50%, transparent 50%),
@@ -102,7 +107,6 @@
             6px 6px,
             100% 100%;
         background-repeat: no-repeat;
-        color: var(--text);
     }
 
     .form-control:focus,
