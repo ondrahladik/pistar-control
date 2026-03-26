@@ -10,6 +10,8 @@ Pro základní funkčnost není potřeba nic měnit, ale doporučuji alespoň zm
 
 Pokročilé nastavení je více popsáno v jednotlivých stránkách dokumentace ([MQTT](mqtt.md) a [Telegram](telegram.md)).
 
+`timezone`: časové pásmo, které aplikace používá pro dashboard, API, MQTT i Telegram. Časové pásmo je ve formátu IANA jako třeba `Europe/Prague`, pro systémový čas slouží `system`.
+
 ## Host profily
 
 Jednou z klíčových funkcí aplikace je přepínání mezi dvěma host profily (`host1` a `host2`). Tyto profily jsou definovány v samostatných souborech, které se nachází ve složce `config/`. Díky tomu lze na jednom hotspotu snadno přepínat mezi dvěma různými nastaveními, například pro různé sítě. 
