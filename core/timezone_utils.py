@@ -2,7 +2,19 @@ from __future__ import annotations
 
 from datetime import datetime, time as datetime_time, timezone
 from typing import TYPE_CHECKING, Optional
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+try:
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+except ImportError:  # pragma: no cover - Python < 3.9
+    ZoneInfo = None
+
+    class ZoneInfoNotFoundError(Exception):
+        pass
+
+try:
+    import pytz
+except ImportError:  # pragma: no cover - optional runtime fallback
+    pytz = None
 
 if TYPE_CHECKING:
     from core.config import ConfigStore
@@ -31,7 +43,11 @@ def resolve_timezone(timezone_name: Optional[str]):
         return _SYSTEM_TIMEZONE
 
     try:
-        return ZoneInfo(normalized_name)
+        if ZoneInfo is not None:
+            return ZoneInfo(normalized_name)
+        if pytz is not None:
+            return pytz.timezone(normalized_name)
+        raise ZoneInfoNotFoundError(normalized_name)
     except ZoneInfoNotFoundError:
         return _SYSTEM_TIMEZONE
 
@@ -56,7 +72,7 @@ def convert_local_time(
     source_timezone = resolve_timezone(source_timezone_name)
     target_timezone = resolve_timezone(target_timezone_name)
     source_now = datetime.now(source_timezone)
-    source_datetime = datetime.combine(source_now.date(), _normalize_time(parsed_time), tzinfo=source_timezone)
+    source_datetime = _build_timezone_aware_datetime(source_now.date(), parsed_time, source_timezone)
     return source_datetime.astimezone(target_timezone).strftime("%H:%M:%S")
 
 
@@ -66,3 +82,11 @@ def get_system_timezone_name() -> str:
 
 def _normalize_time(value: datetime_time) -> datetime_time:
     return value.replace(microsecond=0)
+
+
+def _build_timezone_aware_datetime(date_value, time_value: datetime_time, tzinfo):
+    normalized_time = _normalize_time(time_value)
+    naive_datetime = datetime.combine(date_value, normalized_time)
+    if hasattr(tzinfo, "localize"):
+        return tzinfo.localize(naive_datetime)
+    return naive_datetime.replace(tzinfo=tzinfo)
