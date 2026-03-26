@@ -210,6 +210,9 @@
     const configGrid = document.getElementById("configGrid");
     const hostsList = document.getElementById("hostsList");
     const TEXTAREA_FIELDS = new Set([]);
+    const SELECT_FIELDS = new Set([
+        "general.timezone"
+    ]);
 
     const CHECKBOX_FIELDS = new Set([
         "telegram.enabled",
@@ -235,6 +238,7 @@
     };
 
     let currentConfig = {};
+    let timezoneOptions = [];
 
     function setStatus(message, kind = "") {
         statusNode.textContent = message;
@@ -287,7 +291,7 @@
     }
 
     function getOrderedSections(config) {
-        const preferredOrder = ["general", "aliases", "api", "mqtt", "telegram"];
+        const preferredOrder = ["aliases", "api", "mqtt", "telegram", "general"];
         const configEntries = Object.entries(config);
         const mappedEntries = new Map(configEntries);
         const ordered = [];
@@ -322,6 +326,17 @@
             input.className = "form-control";
             input.rows = 7;
             input.value = value;
+        } else if (SELECT_FIELDS.has(fieldId)) {
+            input = document.createElement("select");
+            input.className = "form-select";
+
+            timezoneOptions.forEach((timezoneName) => {
+                const option = document.createElement("option");
+                option.value = timezoneName;
+                option.textContent = timezoneName === "system" ? "system (systémové pásmo)" : timezoneName;
+                option.selected = timezoneName === value;
+                input.appendChild(option);
+            });
         } else {
             input = document.createElement("input");
             input.className = CHECKBOX_FIELDS.has(fieldId) ? "form-check-input" : "form-control";
@@ -583,6 +598,7 @@
 
         try {
             const payload = await apiRequest("/api/config");
+            timezoneOptions = Array.isArray(payload.timezone_options) ? payload.timezone_options : ["system"];
             renderConfig(payload.config || {});
             setStatus("Konfigurace byla úspěšně načtena.", "success");
         } catch (error) {
@@ -610,6 +626,7 @@
                 body: JSON.stringify({ config })
             });
 
+            timezoneOptions = Array.isArray(payload.timezone_options) ? payload.timezone_options : timezoneOptions;
             renderConfig(payload.config || {});
             await loadHosts();
             setStatus("Konfigurace byla uložena.", "success");

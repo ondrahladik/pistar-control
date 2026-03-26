@@ -9,7 +9,7 @@ from core.config import ConfigStore, get_api_token
 from core.log_parser import LogParserService
 from core.state import get_state_snapshot, get_state_version, update_state, wait_for_state_change_since
 from core.switcher import switch_network
-from core.timezone_utils import format_current_time
+from core.timezone_utils import format_current_time, get_available_timezone_names
 
 
 def create_app(
@@ -232,7 +232,10 @@ def create_app(
     @require_auth
     def get_config() -> Any:
         config_store.reload()
-        return jsonify({"config": config_store.get_app_config()})
+        return jsonify({
+            "config": config_store.get_app_config(),
+            "timezone_options": get_available_timezone_names(),
+        })
 
     @app.post("/api/config")
     @require_auth
@@ -273,6 +276,7 @@ def create_app(
         return jsonify({
             "success": True,
             "config": config_store.get_app_config(),
+            "timezone_options": get_available_timezone_names(),
         })
 
     return app

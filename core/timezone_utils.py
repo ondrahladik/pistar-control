@@ -7,9 +7,12 @@ try:
     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 except ImportError:  # pragma: no cover - Python < 3.9
     ZoneInfo = None
+    available_timezones = None
 
     class ZoneInfoNotFoundError(Exception):
         pass
+else:
+    from zoneinfo import available_timezones
 
 try:
     import pytz
@@ -78,6 +81,33 @@ def convert_local_time(
 
 def get_system_timezone_name() -> str:
     return _SYSTEM_TIMEZONE_NAME
+
+
+def get_available_timezone_names() -> list[str]:
+    timezone_names = set()
+
+    if available_timezones is not None:
+        try:
+            timezone_names.update(available_timezones())
+        except Exception:
+            pass
+
+    if pytz is not None:
+        timezone_names.update(getattr(pytz, "common_timezones", []))
+
+    if not timezone_names:
+        timezone_names.update({
+            "UTC",
+            "Europe/Prague",
+            "Europe/London",
+            "Europe/Berlin",
+            "America/New_York",
+            "America/Los_Angeles",
+            "Asia/Tokyo",
+        })
+
+    timezone_names.discard("localtime")
+    return ["system"] + sorted(timezone_names)
 
 
 def _normalize_time(value: datetime_time) -> datetime_time:
