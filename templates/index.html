@@ -35,6 +35,10 @@
         background: rgba(11, 19, 33, 0.92);
     }
 
+    .config-card.config-card-general {
+        grid-column: 2;
+    }
+
     .config-card .card-body {
         padding: 24px;
     }
@@ -176,6 +180,10 @@
 
         .config-grid {
             grid-template-columns: 1fr;
+        }
+
+        .config-card.config-card-general {
+            grid-column: auto;
         }
 
         .config-intro-header {
@@ -414,24 +422,29 @@
         sections.forEach(([sectionName, values]) => {
             const article = document.createElement("article");
             article.className = "card config-card";
+            if (sectionName === "general") {
+                article.classList.add("config-card-general");
+            }
 
             const body = document.createElement("div");
             body.className = "card-body";
 
-            const header = document.createElement("div");
-            header.className = "config-card-header";
+            if (sectionName !== "general") {
+                const header = document.createElement("div");
+                header.className = "config-card-header";
 
-            const title = document.createElement("h2");
-            title.className = "card-title h4";
-            title.textContent = prettifySectionName(sectionName);
+                const title = document.createElement("h2");
+                title.className = "card-title h4";
+                title.textContent = prettifySectionName(sectionName);
 
-            header.appendChild(title);
+                header.appendChild(title);
 
-            if (SECTION_TOGGLE_FIELDS[sectionName]) {
-                header.appendChild(createSectionToggle(sectionName, values[SECTION_TOGGLE_FIELDS[sectionName]] || "false"));
+                if (SECTION_TOGGLE_FIELDS[sectionName]) {
+                    header.appendChild(createSectionToggle(sectionName, values[SECTION_TOGGLE_FIELDS[sectionName]] || "false"));
+                }
+
+                body.appendChild(header);
             }
-
-            body.appendChild(header);
 
             const pairedFieldIds = new Set(PAIRED_FIELDS.flat());
             const renderedPairs = new Set();
