@@ -7,7 +7,7 @@ import unicodedata
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from core.timezone_utils import get_effective_timezone_name
+from core.timezone_utils import get_effective_timezone_name as resolve_effective_timezone_name
 
 
 class ConfigStore:
@@ -322,7 +322,7 @@ class ConfigStore:
             return self._app_config.get("general", "timezone", fallback="system")
 
     def get_effective_timezone_name(self) -> str:
-        return get_effective_timezone_name(self.get_timezone_name())
+        return resolve_effective_timezone_name(self.get_timezone_name())
 
     def get_telegram_aliases(self) -> Dict[str, str]:
         aliases: Dict[str, str] = {}
