@@ -19,6 +19,7 @@ SERVICE_NAME="pistar-control"
 SYSTEMD_SERVICE="/etc/systemd/system/${SERVICE_NAME}.service"
 REQUIREMENTS="${INSTALL_DIR}/install/requirements.txt"
 FIREWALL_PORT=5000
+MQTT_PORT=1883
 APT_OVERRIDE_FILE="/etc/apt/apt.conf.d/99no-check-valid"
 IS_PISTAR=false
 RESTORE_RO=false
@@ -221,7 +222,7 @@ log_ok "Systemd reloadován."
 # ---------------------------------------------------------------------------
 # [4/8] Odstranění firewall pravidel
 # ---------------------------------------------------------------------------
-log_step 4 "Odstranění firewall pravidel pro port ${FIREWALL_PORT}..."
+log_step 4 "Odstranění firewall pravidel pro port ${FIREWALL_PORT} a MQTT port ${MQTT_PORT}..."
 
 IPV4_REMOVED=false
 while iptables -C INPUT -p tcp --dport "${FIREWALL_PORT}" -j ACCEPT 2>/dev/null; do
@@ -243,6 +244,17 @@ if [ "$IPV6_REMOVED" = true ]; then
     log_ok "IPv6 pravidla odstraněna."
 else
     log_info "IPv6 pravidla pro port ${FIREWALL_PORT}/tcp neexistují."
+fi
+
+MQTT_REMOVED=false
+while iptables -C OUTPUT -p tcp --dport "${MQTT_PORT}" -j ACCEPT 2>/dev/null; do
+    iptables -D OUTPUT -p tcp --dport "${MQTT_PORT}" -j ACCEPT
+    MQTT_REMOVED=true
+done
+if [ "$MQTT_REMOVED" = true ]; then
+    log_ok "IPv4 OUTPUT pravidlo pro MQTT port ${MQTT_PORT}/tcp odstraněno."
+else
+    log_info "IPv4 OUTPUT pravidlo pro MQTT port ${MQTT_PORT}/tcp neexistuje."
 fi
 
 if command -v netfilter-persistent &>/dev/null; then

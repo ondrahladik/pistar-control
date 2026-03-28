@@ -21,6 +21,7 @@ SERVICE_FILE="${INSTALL_DIR}/install/${SERVICE_NAME}.service"
 SYSTEMD_SERVICE="/etc/systemd/system/${SERVICE_NAME}.service"
 REQUIREMENTS="${INSTALL_DIR}/install/requirements.txt"
 FIREWALL_PORT=5000
+MQTT_PORT=1883
 IS_PISTAR=false
 RESTORE_RO=false
 
@@ -206,7 +207,7 @@ log_ok "Systémové balíčky nainstalovány."
 # ---------------------------------------------------------------------------
 # [3/8] Nastavení firewallu (iptables)
 # ---------------------------------------------------------------------------
-log_step 3 "Nastavení firewallu – otevření TCP portu ${FIREWALL_PORT}..."
+log_step 3 "Nastavení firewallu - otevření TCP portu ${FIREWALL_PORT} a MQTT OUTPUT portu ${MQTT_PORT}..."
 
 if iptables -C INPUT -p tcp --dport "${FIREWALL_PORT}" -j ACCEPT 2>/dev/null; then
     log_info "IPv4 pravidlo pro port ${FIREWALL_PORT}/tcp již existuje."
@@ -220,6 +221,13 @@ if ip6tables -C INPUT -p tcp --dport "${FIREWALL_PORT}" -j ACCEPT 2>/dev/null; t
 else
     ip6tables -I INPUT -p tcp --dport "${FIREWALL_PORT}" -j ACCEPT
     log_ok "IPv6 pravidlo pro port ${FIREWALL_PORT}/tcp přidáno."
+fi
+
+if iptables -C OUTPUT -p tcp --dport "${MQTT_PORT}" -j ACCEPT 2>/dev/null; then
+    log_info "IPv4 OUTPUT pravidlo pro MQTT port ${MQTT_PORT}/tcp již existuje."
+else
+    iptables -A OUTPUT -p tcp --dport "${MQTT_PORT}" -j ACCEPT
+    log_ok "IPv4 OUTPUT pravidlo pro MQTT port ${MQTT_PORT}/tcp přidáno."
 fi
 
 log_info "Ukládám pravidla firewallu (IPv4 + IPv6)..."
