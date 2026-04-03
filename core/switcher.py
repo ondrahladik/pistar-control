@@ -1,5 +1,6 @@
 import threading
 import subprocess
+import shutil
 from pathlib import Path
 from typing import List
 
@@ -24,7 +25,7 @@ def switch_network(network_name: str, config_store: ConfigStore) -> bool:
             updated_content = source_path.read_text(encoding="utf-8")
 
             logger.info("Remounting filesystem as read-write")
-            _run_command(["mount", "-o", "remount,rw", "/"])
+            _remount_for_switch(read_only=False)
 
             try:
                 logger.info("Writing active MMDVMHost configuration")
@@ -40,7 +41,7 @@ def switch_network(network_name: str, config_store: ConfigStore) -> bool:
             finally:
                 logger.info("Remounting filesystem as read-only")
                 try:
-                    _run_command(["mount", "-o", "remount,ro", "/"])
+                    _remount_for_switch(read_only=True)
                 except subprocess.CalledProcessError:
                     logger.warning("Failed to remount filesystem as read-only after switch", exc_info=True)
 
@@ -59,9 +60,38 @@ def switch_network(network_name: str, config_store: ConfigStore) -> bool:
 
 
 def _run_command(command: List[str]) -> None:
-    cmd = " ".join(command)
-    logger.info("Running command: %s", cmd)
-    subprocess.run(["bash", "-c", cmd], check=True)
+    logger.info("Running command: %s", " ".join(command))
+    subprocess.run(command, check=True)
+
+
+def _remount_for_switch(read_only: bool) -> None:
+    helper_command = "rpi-ro" if read_only else "rpi-rw"
+    fallback_mode = "ro" if read_only else "rw"
+
+    if _command_exists(helper_command):
+        _run_command([helper_command])
+        return
+
+    for mountpoint in ["/boot", "/var/log", "/var", "/"]:
+        _remount_path(mountpoint, fallback_mode)
+
+
+def _remount_path(path: str, mode: str) -> None:
+    if not _is_mountpoint(path):
+        return
+
+    _run_command(["mount", "-o", f"remount,{mode}", path])
+
+
+def _command_exists(command: str) -> bool:
+    return shutil.which(command) is not None
+
+
+def _is_mountpoint(path: str) -> bool:
+    return subprocess.run(
+        ["mountpoint", "-q", path],
+        check=False,
+    ).returncode == 0
 
 
 def _write_file_atomically(path: Path, content: str) -> None:
