@@ -50,8 +50,11 @@ def switch_network(network_name: str, config_store: ConfigStore) -> bool:
                 logger.info("Remounting filesystem as read-only")
                 try:
                     _remount_for_switch(read_only=True)
-                except subprocess.CalledProcessError:
-                    logger.warning("Failed to remount filesystem as read-only after switch", exc_info=True)
+                except subprocess.CalledProcessError as exc:
+                    if exc.returncode == 32:
+                        logger.info("Filesystem stayed read-write after switch because remount to read-only is busy")
+                    else:
+                        logger.warning("Failed to remount filesystem as read-only after switch", exc_info=True)
 
         except Exception:
             logger.exception("Network switch failed for '%s'", network_name)
