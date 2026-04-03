@@ -72,7 +72,7 @@ def switch_network(network_name: str, config_store: ConfigStore) -> bool:
 
 def _run_command(command: List[str]) -> None:
     logger.info("Running command: %s", " ".join(command))
-    subprocess.run(command, check=True)
+    subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
 
 
 def _remount_for_switch(read_only: bool) -> None:
@@ -113,6 +113,8 @@ def _remount_path(path: str, mode: str, allow_busy: bool = False) -> None:
         if allow_busy and exc.returncode == 32:
             logger.info("Skipping busy mountpoint during remount: %s", path)
             return
+        if exc.stderr:
+            logger.info("Command stderr for %s: %s", path, exc.stderr.strip())
         raise
 
 
