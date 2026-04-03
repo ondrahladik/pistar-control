@@ -69,18 +69,39 @@ def _remount_for_switch(read_only: bool) -> None:
     fallback_mode = "ro" if read_only else "rw"
 
     if _command_exists(helper_command):
-        _run_command([helper_command])
-        return
+        try:
+            _run_command([helper_command])
+            return
+        except subprocess.CalledProcessError:
+            logger.warning(
+                "Helper command %s failed, falling back to manual remount",
+                helper_command,
+                exc_info=True,
+            )
 
+    first_error = None
     for mountpoint in ["/boot", "/var/log", "/var", "/"]:
-        _remount_path(mountpoint, fallback_mode)
+        try:
+            _remount_path(mountpoint, fallback_mode, allow_busy=read_only and mountpoint != "/")
+        except subprocess.CalledProcessError as exc:
+            if first_error is None:
+                first_error = exc
+
+    if first_error is not None:
+        raise first_error
 
 
-def _remount_path(path: str, mode: str) -> None:
+def _remount_path(path: str, mode: str, allow_busy: bool = False) -> None:
     if not _is_mountpoint(path):
         return
 
-    _run_command(["mount", "-o", f"remount,{mode}", path])
+    try:
+        _run_command(["mount", "-o", f"remount,{mode}", path])
+    except subprocess.CalledProcessError as exc:
+        if allow_busy and exc.returncode == 32:
+            logger.info("Skipping busy mountpoint during remount: %s", path)
+            return
+        raise
 
 
 def _command_exists(command: str) -> bool:
