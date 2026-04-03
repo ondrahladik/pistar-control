@@ -1,3 +1,4 @@
+import os
 import threading
 import subprocess
 import shutil
@@ -141,26 +142,22 @@ def _is_mountpoint(path: str) -> bool:
 def _write_file_atomically(path: Path, content: str) -> None:
     logger.info("Updating %s using atomic copy", path)
 
-    temp_path = "/tmp/mmdvmhost_tmp"
+    temp_path = Path("/tmp/mmdvmhost_tmp")
+    backup_path = Path("/etc/mmdvmhost.bak")
 
     with open(temp_path, "w", encoding="utf-8") as f:
         f.write(content)
 
     logger.info("Temporary file prepared at %s", temp_path)
 
-    subprocess.run(["cp", str(path), "/etc/mmdvmhost.bak"], check=True)
-    subprocess.run(["cp", temp_path, str(path)], check=True)
-    subprocess.run(["chown", "root:root", str(path)], check=True)
+    shutil.copy2(path, backup_path)
+    shutil.copy2(temp_path, path)
+    os.chown(path, 0, 0)
 
     logger.info("Configuration file written successfully")
 
 
 def _truncate_mmdvm_logs() -> None:
-    subprocess.run(
-        [
-            "bash",
-            "-lc",
-            'shopt -s nullglob; files=(/var/log/pi-star/MMDVM-*.log); if ((${#files[@]})); then sudo truncate -s 0 "${files[@]}"; fi',
-        ],
-        check=True,
-    )
+    for log_path in Path("/var/log/pi-star").glob("MMDVM-*.log"):
+        with open(log_path, "r+", encoding="utf-8", errors="ignore") as handle:
+            handle.truncate(0)
