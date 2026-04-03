@@ -10,7 +10,7 @@ from typing import Deque, Dict, List, Optional
 from core.app_logging import get_logger
 from core.config import ConfigStore
 from core.state import clear_active_call, set_active_call
-from core.timezone_utils import convert_local_time, get_system_timezone_name
+from core.timezone_utils import convert_local_time
 
 
 DEFAULT_LOG_GLOB = "/var/log/pi-star/MMDVM-*.log"
@@ -289,6 +289,6 @@ class LogParserService:
         serialized_call["time"] = convert_local_time(
             recent_call.get("time_raw"),
             self._config_store.get_timezone_name(),
-            source_timezone_name=get_system_timezone_name(),
+            source_timezone_name="UTC",
         )
         return serialized_call
