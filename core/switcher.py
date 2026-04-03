@@ -2,7 +2,7 @@ import threading
 import subprocess
 import shutil
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from core.app_logging import get_logger
 from core.config import ConfigStore
@@ -10,6 +10,14 @@ from core.state import clear_active_call, update_state
 
 
 MMDVMHOST_PATH = Path("/etc/mmdvmhost")
+REMOUNT_HELPER_DIRS = (
+    "/usr/local/sbin",
+    "/usr/local/bin",
+    "/usr/sbin",
+    "/usr/bin",
+    "/sbin",
+    "/bin",
+)
 switch_lock = threading.Lock()
 logger = get_logger("app.switcher")
 
@@ -67,15 +75,16 @@ def _run_command(command: List[str]) -> None:
 def _remount_for_switch(read_only: bool) -> None:
     helper_command = "rpi-ro" if read_only else "rpi-rw"
     fallback_mode = "ro" if read_only else "rw"
+    helper_path = _resolve_command_path(helper_command)
 
-    if _command_exists(helper_command):
+    if helper_path is not None:
         try:
-            _run_command([helper_command])
+            _run_command([helper_path])
             return
         except subprocess.CalledProcessError:
             logger.warning(
                 "Helper command %s failed, falling back to manual remount",
-                helper_command,
+                helper_path,
                 exc_info=True,
             )
 
@@ -104,8 +113,17 @@ def _remount_path(path: str, mode: str, allow_busy: bool = False) -> None:
         raise
 
 
-def _command_exists(command: str) -> bool:
-    return shutil.which(command) is not None
+def _resolve_command_path(command: str) -> Optional[str]:
+    direct_match = shutil.which(command)
+    if direct_match is not None:
+        return direct_match
+
+    for directory in REMOUNT_HELPER_DIRS:
+        candidate = Path(directory) / command
+        if candidate.exists() and candidate.is_file():
+            return str(candidate)
+
+    return None
 
 
 def _is_mountpoint(path: str) -> bool:
