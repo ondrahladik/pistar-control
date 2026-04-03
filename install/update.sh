@@ -13,9 +13,12 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-TOTAL_STEPS=4
+TOTAL_STEPS=5
 INSTALL_DIR="/opt/pistar-control"
 REPO_URL="https://github.com/ondrahladik/pistar-control.git"
+SERVICE_NAME="pistar-control"
+SERVICE_FILE="${INSTALL_DIR}/install/${SERVICE_NAME}.service"
+SYSTEMD_SERVICE="/etc/systemd/system/${SERVICE_NAME}.service"
 IS_PISTAR=false
 RESTORE_RO=false
 
@@ -180,21 +183,52 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# [4/4] Dokončení a Pi-Star read-only režim
+# [4/5] Aktualizace systemd služby a restart
 # ---------------------------------------------------------------------------
-log_step 4 "Dokončení aktualizace..."
+log_step 4 "Aktualizace systemd služby a restart aplikace..."
+
+if [ ! -f "${SERVICE_FILE}" ]; then
+    log_error "Service soubor nenalezen: ${SERVICE_FILE}"
+    exit 1
+fi
+
+if [ ! -f "${INSTALL_DIR}/install/apply-firewall.sh" ]; then
+    log_error "Pomocný firewall skript nenalezen: ${INSTALL_DIR}/install/apply-firewall.sh"
+    exit 1
+fi
+
+chmod +x "${INSTALL_DIR}/install/apply-firewall.sh"
+
+if [ ! -f "${SYSTEMD_SERVICE}" ] || ! cmp -s "${SERVICE_FILE}" "${SYSTEMD_SERVICE}"; then
+    log_info "Kopíruji ${SERVICE_FILE} → ${SYSTEMD_SERVICE}"
+    cp "${SERVICE_FILE}" "${SYSTEMD_SERVICE}"
+    log_ok "Service soubor aktualizován."
+else
+    log_info "Service soubor je aktuální."
+fi
+
+log_info "Reloaduji systemd..."
+systemctl daemon-reload
+log_ok "Systemd reloadován."
+
+log_info "Restartuji službu ${SERVICE_NAME}..."
+if systemctl restart "${SERVICE_NAME}"; then
+    log_ok "Služba ${SERVICE_NAME} byla restartována."
+else
+    log_error "Restart služby ${SERVICE_NAME} selhal."
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# [5/5] Dokončení a Pi-Star read-only režim
+# ---------------------------------------------------------------------------
+log_step 5 "Dokončení aktualizace..."
 
 if [ "$IS_PISTAR" = true ] && [ "$RESTORE_RO" = true ]; then
     log_info "Vrácení Pi-Star filesystemu do read-only režimu..."
     restore_pistar_ro
     log_ok "Filesystem přepnut do read-only režimu."
     RESTORE_RO=false
-    log_info "Restartuji službu pistar-control..."
-    if systemctl restart pistar-control; then
-        log_ok "Služba pistar-control byla restartována."
-    else
-        log_error "Restart služby pistar-control selhal."
-    fi
 fi
 
 echo ""

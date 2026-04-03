@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, time as datetime_time, timezone
 from typing import TYPE_CHECKING, Optional
 
@@ -24,11 +25,7 @@ if TYPE_CHECKING:
 
 
 _SYSTEM_TIMEZONE = datetime.now().astimezone().tzinfo or timezone.utc
-_SYSTEM_TIMEZONE_NAME = (
-    getattr(_SYSTEM_TIMEZONE, "key", None)
-    or datetime.now(_SYSTEM_TIMEZONE).tzname()
-    or "UTC"
-)
+_SYSTEM_TIMEZONE_NAME = "UTC"
 
 
 def get_configured_timezone_name(config_store: "ConfigStore") -> str:
@@ -51,7 +48,7 @@ def resolve_timezone(timezone_name: Optional[str]):
         if pytz is not None:
             return pytz.timezone(normalized_name)
         raise ZoneInfoNotFoundError(normalized_name)
-    except ZoneInfoNotFoundError:
+    except Exception:
         return _SYSTEM_TIMEZONE
 
 
@@ -120,3 +117,54 @@ def _build_timezone_aware_datetime(date_value, time_value: datetime_time, tzinfo
     if hasattr(tzinfo, "localize"):
         return tzinfo.localize(naive_datetime)
     return naive_datetime.replace(tzinfo=tzinfo)
+
+
+def _read_system_timezone_name() -> str:
+    zoneinfo_key = getattr(_SYSTEM_TIMEZONE, "key", None)
+    if zoneinfo_key:
+        return zoneinfo_key
+
+    for path in ("/etc/timezone",):
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                candidate = handle.read().strip()
+        except OSError:
+            continue
+
+        if _is_valid_timezone_name(candidate):
+            return candidate
+
+    for path in ("/etc/localtime",):
+        try:
+            resolved_path = os.path.realpath(path)
+        except OSError:
+            continue
+
+        marker = "/zoneinfo/"
+        if marker in resolved_path:
+            candidate = resolved_path.split(marker, 1)[1].strip()
+            if _is_valid_timezone_name(candidate):
+                return candidate
+
+    timezone_name = datetime.now(_SYSTEM_TIMEZONE).tzname() or "UTC"
+    return timezone_name
+
+
+def _is_valid_timezone_name(value: Optional[str]) -> bool:
+    if not value:
+        return False
+
+    try:
+        if ZoneInfo is not None:
+            ZoneInfo(value)
+            return True
+        if pytz is not None:
+            pytz.timezone(value)
+            return True
+    except Exception:
+        return False
+
+    return value.upper() == "UTC"
+
+
+_SYSTEM_TIMEZONE_NAME = _read_system_timezone_name()

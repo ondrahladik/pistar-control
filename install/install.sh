@@ -205,34 +205,11 @@ apt-get install -y -qq iptables iptables-persistent netfilter-persistent git pyt
 log_ok "Systémové balíčky nainstalovány."
 
 # ---------------------------------------------------------------------------
-# [3/8] Nastavení firewallu (iptables)
+# [3/8] Příprava firewallu (iptables)
 # ---------------------------------------------------------------------------
-log_step 3 "Nastavení firewallu - otevření TCP portu ${FIREWALL_PORT} a MQTT OUTPUT portu ${MQTT_PORT}..."
-
-if iptables -C INPUT -p tcp --dport "${FIREWALL_PORT}" -j ACCEPT 2>/dev/null; then
-    log_info "IPv4 pravidlo pro port ${FIREWALL_PORT}/tcp již existuje."
-else
-    iptables -I INPUT -p tcp --dport "${FIREWALL_PORT}" -j ACCEPT
-    log_ok "IPv4 pravidlo pro port ${FIREWALL_PORT}/tcp přidáno."
-fi
-
-if ip6tables -C INPUT -p tcp --dport "${FIREWALL_PORT}" -j ACCEPT 2>/dev/null; then
-    log_info "IPv6 pravidlo pro port ${FIREWALL_PORT}/tcp již existuje."
-else
-    ip6tables -I INPUT -p tcp --dport "${FIREWALL_PORT}" -j ACCEPT
-    log_ok "IPv6 pravidlo pro port ${FIREWALL_PORT}/tcp přidáno."
-fi
-
-if iptables -C OUTPUT -p tcp --dport "${MQTT_PORT}" -j ACCEPT 2>/dev/null; then
-    log_info "IPv4 OUTPUT pravidlo pro MQTT port ${MQTT_PORT}/tcp již existuje."
-else
-    iptables -A OUTPUT -p tcp --dport "${MQTT_PORT}" -j ACCEPT
-    log_ok "IPv4 OUTPUT pravidlo pro MQTT port ${MQTT_PORT}/tcp přidáno."
-fi
-
-log_info "Ukládám pravidla firewallu (IPv4 + IPv6)..."
-netfilter-persistent save > /dev/null 2>&1
-log_ok "Pravidla firewallu uložena."
+log_step 3 "Příprava firewallu - pravidla budou aplikována při startu služby..."
+log_info "Pravidla pro ${FIREWALL_PORT}/tcp a MQTT OUTPUT ${MQTT_PORT}/tcp bude spravovat systemd služba."
+log_ok "Firewall bude po instalaci a každém restartu služby znovu aplikován."
 
 # ---------------------------------------------------------------------------
 # [4/8] Klonování / aktualizace repozitáře
@@ -279,6 +256,13 @@ if [ ! -f "${SERVICE_FILE}" ]; then
     exit 1
 fi
 log_ok "pistar-control.service nalezen."
+
+if [ ! -f "${INSTALL_DIR}/install/apply-firewall.sh" ]; then
+    log_error "Pomocný firewall skript nenalezen: ${INSTALL_DIR}/install/apply-firewall.sh"
+    exit 1
+fi
+chmod +x "${INSTALL_DIR}/install/apply-firewall.sh"
+log_ok "apply-firewall.sh nalezen a je spustitelný."
 
 CONFIG_DIR="${INSTALL_DIR}/config"
 if [ ! -f "${CONFIG_DIR}/app.ini" ] && [ -f "${CONFIG_DIR}/app.ini.sample" ]; then
